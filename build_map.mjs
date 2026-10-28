@@ -3,7 +3,7 @@
 // Запуск: node build_map.mjs [--main URL|файл] [--summer URL|файл] [--no-summer] [--borrow-shapes]
 //                            [--template map_template.html] [--app app.js] [--out index.html]
 // Без --main сам находит ссылки через CKAN API opendata.terrassa.cat. Нужен Node 18+ и пакет fflate.
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { unzipSync } from 'fflate';
 
 const CKAN = 'https://opendata.terrassa.cat/api/3/action/package_show?id=parades-bus';
@@ -25,8 +25,14 @@ function parseArgs(argv) {
 
 async function fetchBytes(src) {
   if (!/^https?:/.test(src)) return new Uint8Array(readFileSync(src));
-  const r = await fetch(src, { headers: { 'User-Agent': 'terrassa-bus-map/1.0' }, signal: AbortSignal.timeout(120000) });
-  if (!r.ok) throw new Error(`HTTP ${r.status} для ${src}`);
+  // сайты открытых данных часто отдают 403 «ботам», поэтому представляемся обычным браузером
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+    'Accept': 'application/zip,application/octet-stream,application/json,text/html;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'ca,es;q=0.9,en;q=0.8',
+  };
+  const r = await fetch(src, { headers, signal: AbortSignal.timeout(120000), redirect: 'follow' });
+  if (!r.ok) throw new Error(`HTTP ${r.status} (сервер: ${r.headers.get('server') || '?'}) для ${src}`);
   return new Uint8Array(await r.arrayBuffer());
 }
 
@@ -176,7 +182,11 @@ const urls = (a.main && (a.summer || a.noSummer)) ? {} : await discover();
 const raws = {};
 for (const [key, src] of [['main', a.main || urls.main], ['summer', a.noSummer ? null : (a.summer || urls.summer)]]) {
   if (!src) continue;
-  try { raws[key] = await fetchBytes(src); } catch (e) { console.error(`ПРЕДУПРЕЖДЕНИЕ: «${key}» не загружен: ${e.message}`); }
+  try { raws[key] = await fetchBytes(src); } catch (e) {
+    console.error(`ПРЕДУПРЕЖДЕНИЕ: «${key}» не загружен: ${e.message}`);
+    const local = `data/${key}.zip`;   // запасной вариант: архив, положенный в репозиторий вручную
+    if (existsSync(local)) { raws[key] = new Uint8Array(readFileSync(local)); console.error(`Использую локальный файл ${local}`); }
+  }
 }
 if (!raws.main) { console.error('Основной архив не загружен, публикация отменена'); process.exit(1); }
 
