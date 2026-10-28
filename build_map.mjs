@@ -7,8 +7,8 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { unzipSync } from 'fflate';
 
 const CKAN = 'https://opendata.terrassa.cat/api/3/action/package_show?id=parades-bus';
-const FALLBACK = { // запасные ссылки, если CKAN API недоступен
-  main: 'https://opendata.terrassa.cat/dataset/b3e576c8-481f-4446-bafe-41258f7ec0ae/resource/f7340494-89f4-42ee-a7f4-7505d6e20735/download/tmesa_gtfs_estatics_20250203.zip',
+const FALLBACK = { // актуальный архив из NAP через зеркало Transitland; портал Terrassa блокирует Actions через Cloudflare
+  main: 'https://gtfs-source-feeds.transit.land/es-nap-1175.zip',
   summer: 'https://opendata.terrassa.cat/dataset/b3e576c8-481f-4446-bafe-41258f7ec0ae/resource/0002bb95-34cd-4e23-95c0-9c0747d66443/download/gtfs-tmsae_estiu.zip',
 };
 
@@ -40,7 +40,10 @@ async function discover() {
   const urls = { ...FALLBACK };
   try {
     const res = JSON.parse(new TextDecoder().decode(await fetchBytes(CKAN))).result.resources;
-    for (const r of res) urls[/estiu/i.test((r.name || '') + (r.url || '')) ? 'summer' : 'main'] = r.url;
+    // CKAN resource for the main feed is still dated 2025-02-04; keep the current NAP mirror above.
+    for (const r of res) {
+      if (/estiu/i.test((r.name || '') + (r.url || ''))) urls.summer = r.url;
+    }
   } catch (e) { console.error('CKAN API недоступен, использую запасные ссылки:', e.message); }
   return urls;
 }
