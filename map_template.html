@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Автобусы Террассы по расписанию</title>
+<style>
+:root{color-scheme:dark;--bg:#14181a;--fg:#e6ebe8;--mut:#93a09a;--line:#2b3430;--acc:#4fc08d;--card:#1b2124}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column}
+header{padding:8px 12px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;background:var(--card)}
+header h1{font-size:15px;margin:0;font-weight:650}
+label{color:var(--mut);display:flex;align-items:center;gap:6px}
+input,select,button{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:4px 8px}
+button{cursor:pointer}button.p{background:var(--acc);color:#04170d;border-color:var(--acc)}
+#clock{font-variant-numeric:tabular-nums;font-size:18px;font-weight:650;min-width:78px}
+#bar{padding:6px 12px;display:flex;gap:10px;align-items:center;background:var(--card);border-bottom:1px solid var(--line)}
+#bar input[type=range]{flex:1;padding:0}
+#info{color:var(--mut);padding:0 12px 6px;background:var(--card);font-size:13px}
+#chips{display:flex;gap:6px;overflow-x:auto;padding:6px 12px;background:var(--card);border-bottom:1px solid var(--line)}
+.chip{flex:none;padding:2px 10px;border-radius:99px;font-weight:650;border:2px solid;cursor:pointer;user-select:none}
+.chip.off{opacity:.35}
+#wrap{flex:1;min-height:0;position:relative;background:#0f1214;overflow:hidden}
+canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}
+#pop{position:absolute;z-index:3;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 10px;max-width:240px;transform:translate(-50%,-135%);pointer-events:none;font-size:13px}
+#zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px;z-index:2}
+#zoom button{width:36px;height:36px;font-size:18px;padding:0}
+#warn{position:absolute;left:10px;right:56px;bottom:26px;background:#4a3b12;color:#ffe3a0;padding:6px 10px;border-radius:6px;z-index:2}
+#attr{position:absolute;right:6px;bottom:4px;font-size:11px;color:var(--mut);z-index:2}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Автобусы Террассы (по расписанию)</h1>
+  <label>Дата <input id="date" type="date"></label>
+  <label>Скорость <select id="speed"><option value="1">1×</option><option value="10">10×</option><option value="60">60×</option><option value="300">300×</option></select></label>
+  <label>Расписание <select id="set"></select></label>
+  <label>Подложка <select id="base">
+    <option value="esridark">Esri тёмная (без ключа)</option>
+    <option value="esri">Esri улицы (без ключа)</option>
+    <option value="osm">OpenStreetMap</option>
+    <option value="dark">CARTO тёмная (с водяным знаком)</option>
+    <option value="light">CARTO светлая (с водяным знаком)</option>
+    <option value="mbdark">Mapbox тёмная (нужен токен)</option>
+    <option value="mbstreets">Mapbox улицы (нужен токен)</option>
+    <option value="mbsat">Mapbox спутник (нужен токен)</option>
+    <option value="none">Без подложки</option>
+  </select></label>
+  <label id="tkl" hidden>Токен Mapbox <input id="tk" type="text" placeholder="pk.…" size="22" autocomplete="off"></label>
+</header>
+<div id="bar">
+  <button id="play" class="p">Пауза</button>
+  <button id="now">Сейчас</button>
+  <span id="clock">--:--:--</span>
+  <input id="slider" type="range" min="0" max="86399" step="60" value="0" aria-label="Время суток">
+</div>
+<div id="info">Загрузка…</div>
+<div id="chips"></div>
+<div id="wrap">
+  <canvas id="cv"></canvas>
+  <div id="pop" hidden></div>
+  <div id="zoom"><button id="zi" aria-label="Приблизить">+</button><button id="zo" aria-label="Отдалить">−</button></div>
+  <div id="warn" hidden>Фоновая карта не загрузилась, поэтому показаны только линии, остановки и автобусы. Выберите другую подложку или «Без подложки».</div>
+  <div id="attr"></div>
+</div>
+<script id="emb" type="application/json">__DATA__</script>
+<script>
+__APP__
+</script>
+</body>
+</html>

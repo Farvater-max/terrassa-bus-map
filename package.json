@@ -1,0 +1,8 @@
+{
+  "name": "terrassa-bus-map",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "node build_map.mjs --out public/index.html" },
+  "dependencies": { "fflate": "^0.8.2" }
+}
