@@ -23,6 +23,8 @@ jobs:
       - run: |
           mkdir -p public
           node build_map.mjs --out public/index.html
+        env:
+          NAP_API_KEY: ${{ secrets.NAP_API_KEY }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: public

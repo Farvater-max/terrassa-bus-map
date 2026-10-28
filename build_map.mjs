@@ -7,8 +7,8 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { unzipSync } from 'fflate';
 
 const CKAN = 'https://opendata.terrassa.cat/api/3/action/package_show?id=parades-bus';
-const FALLBACK = { // актуальный архив из NAP через зеркало Transitland; портал Terrassa блокирует Actions через Cloudflare
-  main: 'https://gtfs-source-feeds.transit.land/es-nap-1175.zip',
+const FALLBACK = { // прямое скачивание актуального фида TMESA из официального NAP Испании
+  main: 'https://nap.transportes.gob.es/api/Fichero/download/1175',
   summer: 'https://opendata.terrassa.cat/dataset/b3e576c8-481f-4446-bafe-41258f7ec0ae/resource/0002bb95-34cd-4e23-95c0-9c0747d66443/download/gtfs-tmsae_estiu.zip',
 };
 
@@ -31,7 +31,13 @@ async function fetchBytes(src) {
     'Accept': 'application/zip,application/octet-stream,application/json,text/html;q=0.9,*/*;q=0.8',
     'Accept-Language': 'ca,es;q=0.9,en;q=0.8',
   };
-  const r = await fetch(src, { headers, signal: AbortSignal.timeout(120000), redirect: 'follow' });
+  const url = new URL(src);
+  if (url.hostname === 'nap.transportes.gob.es') {
+    const apiKey = process.env.NAP_API_KEY;
+    if (!apiKey) throw new Error('для загрузки GTFS из NAP задайте NAP_API_KEY (GitHub Actions secret)');
+    headers.ApiKey = apiKey;
+  }
+  const r = await fetch(url, { headers, signal: AbortSignal.timeout(120000), redirect: 'follow' });
   if (!r.ok) throw new Error(`HTTP ${r.status} (сервер: ${r.headers.get('server') || '?'}) для ${src}`);
   return new Uint8Array(await r.arrayBuffer());
 }
