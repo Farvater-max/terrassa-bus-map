@@ -1,24 +1,25 @@
-# Автобусы Террассы по расписанию
+# Terrassa Buses on Schedule
 
-Карта с движущимися метками автобусов TMESA. Позиции считаются по расписанию GTFS, это не данные с реальных автобусов.
+A map with moving markers showing TMESA buses. Positions are estimated based on the GTFS schedule; they are not real-time data from actual buses.
 
-## Файлы
-- `build_map.mjs` — сборщик: скачивает GTFS с opendata.terrassa.cat, собирает страницу
-- `app.js` — код карты
-- `map_template.html` — разметка и стили
-- `.github/workflows/update-map.yml` — еженедельная пересборка и публикация на GitHub Pages
+## Files
+- `build_map.mjs` — build script: downloads GTFS data from opendata.terrassa.cat and generates the page
+- `app.js` — map application code
+- `map_template.html` — HTML markup and styles
+- `.github/workflows/update-map.yml` — weekly rebuild and deployment to GitHub Pages
 
-## Локальный запуск
-```
+## Running Locally
+```bash
 npm install
-node build_map.mjs --main путь/к/gtfs.zip --no-summer --out index.html
+node build_map.mjs --no-summer --out index.html
 ```
-Без `--main` скрипт сам находит архивы на портале Ajuntament (CKAN API).
 
-## Публикация
-Settings → Pages → Source: GitHub Actions. Затем Actions → «Обновление карты автобусов» → Run workflow.
+The script automatically discovers GTFS archives on the Ajuntament open data portal via the CKAN API.
 
-## Расписание и даты
-Для выбранной даты берётся архив, у которого период действия в `calendar.txt` покрывает эту дату. Если такого нет, используется основной архив по дню недели (с пометкой на карте).
+## Deployment
+Go to Settings → Pages → Source: GitHub Actions. Then open Actions → “Update Bus Map” → Run workflow.
 
-Подложки: Esri и OpenStreetMap работают без ключа, Mapbox требует публичный токен (вводится в поле на странице, хранится в браузере).
+## Schedules and Dates
+For the selected date, the script uses the archive whose validity period in `calendar.txt` covers that date. If no such archive is available, it falls back to the main archive for the corresponding day of the week, with a notice displayed on the map.
+
+**Map layers:** Esri and OpenStreetMap work without an API key. Mapbox requires a public token, which can be entered in the field on the page and is stored in the browser.
