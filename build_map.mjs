@@ -4,6 +4,7 @@
 //                            [--template map_template.html] [--app app.js] [--out index.html]
 // Без --main сам находит ссылки через CKAN API opendata.terrassa.cat. Нужен Node 18+ и пакет fflate.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { unzipSync } from 'fflate';
 
 const CKAN = 'https://opendata.terrassa.cat/api/3/action/package_show?id=parades-bus';
@@ -218,9 +219,45 @@ for (const [key, label] of [['main', 'Основное'], ['summer', 'Летне
   if (key === 'main' && end < today) console.error(`ПРЕДУПРЕЖДЕНИЕ: основной архив уже не действует (до ${end}); карта покажет его по дню недели.`);
   sets.push(s); console.log(`${key}: ${s.trips.length} рейсов, ${s.label}`);
 }
-const data = { generated: now.toLocaleDateString('ru-RU'), sets };
-const js = JSON.stringify(data).replaceAll('</', '<\\/');
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+if (!supabaseUrl || !supabaseServiceKey || !supabaseAnonKey) {
+  throw new Error('Нужны SUPABASE_URL, SUPABASE_SERVICE_KEY и SUPABASE_ANON_KEY');
+}
+const isoDate = value => value ? `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}` : null;
+const rows = sets.map(s => {
+  const starts = s.cal.map(c => c[2]).filter(Boolean).sort();
+  const ends = s.cal.map(c => c[3]).filter(Boolean).sort();
+  const serialized = JSON.stringify(s);
+  return {
+    id: s.id,
+    label: s.label,
+    valid_from: isoDate(starts[0]),
+    valid_to: isoDate(ends.at(-1)),
+    content_hash: createHash('sha256').update(serialized).digest('hex'),
+    updated_at: now.toISOString(),
+    data: s,
+  };
+});
+const supabaseHeaders = {
+  apikey: supabaseServiceKey,
+  'Content-Type': 'application/json',
+  Prefer: 'resolution=merge-duplicates,return=minimal',
+};
+const uploadResponse = await fetch(`${supabaseUrl.replace(/\/$/, '')}/rest/v1/feeds?on_conflict=id`, {
+  method: 'POST',
+  headers: supabaseHeaders,
+  body: JSON.stringify(rows),
+  signal: AbortSignal.timeout(120000),
+});
+if (!uploadResponse.ok) {
+  throw new Error(`Ошибка записи расписания в Supabase: HTTP ${uploadResponse.status} ${await uploadResponse.text()}`);
+}
+console.log(`Supabase: загружено расписаний — ${rows.length}`);
+
 writeFileSync(a.out, readFileSync(a.template, 'utf8')
   .replace('__APP__', () => readFileSync(a.app, 'utf8'))
-  .replace('__DATA__', () => js));
+  .replace('__SUPABASE_URL__', () => JSON.stringify(supabaseUrl))
+  .replace('__SUPABASE_ANON_KEY__', () => JSON.stringify(supabaseAnonKey)));
 console.log('Готово:', a.out);

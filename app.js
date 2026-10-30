@@ -1,8 +1,24 @@
 const $=s=>document.querySelector(s);
+let DATA;
+try {
+  const endpoint = new URL('/rest/v1/feeds', window.SUPABASE_URL);
+  endpoint.search = new URLSearchParams({ select: 'data,updated_at', order: 'id' });
+  const response = await fetch(endpoint, { headers: {
+    apikey: window.SUPABASE_ANON_KEY,
+  } });
+  if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+  const data = await response.json();
+  if (!data?.length) throw new Error('В таблице feeds пока нет расписаний.');
+  const latest = data.map(row => row.updated_at).filter(Boolean).sort().at(-1);
+  DATA = { generated: latest ? new Date(latest).toLocaleDateString('ru-RU') : 'неизвестно', sets: data.map(row => row.data) };
+} catch (error) {
+  $('#info').textContent = `Не удалось загрузить расписание из Supabase: ${error.message}`;
+  throw error;
+}
 const mx=lon=>(lon+180)/360, my=lat=>{const s=Math.sin(lat*Math.PI/180);return .5-Math.log((1+s)/(1-s))/(4*Math.PI)};
 const hms=t=>{t=Math.floor(t)%86400;return [t/3600|0,t/60%60|0,t%60].map(n=>String(n).padStart(2,'0')).join(':')};
 const vivid=c=>{const n=parseInt(c.slice(1),16),r=n>>16,g=(n>>8)&255,b=n&255;return (r*299+g*587+b*114)/1000<90?'#'+[r,g,b].map(v=>Math.round(v+(255-v)*.6).toString(16).padStart(2,'0')).join(''):c};
-const DATA=JSON.parse($('#emb').textContent),SETS=DATA.sets;
+const SETS=DATA.sets;
 let cur=null,stops,routes,trips,lines,SH=[];
 function useSet(S){
   if(cur===S)return;cur=S;
