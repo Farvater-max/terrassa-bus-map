@@ -89,20 +89,20 @@ const escapeHTML=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<'
 function drawBusMarker(x,y,route){
   ctx.save();
   ctx.beginPath();
-  ctx.roundRect(x-16,y-16,32,32,10);
+  ctx.roundRect(x-13,y-13,26,26,8);
   ctx.fillStyle=route.color;
   ctx.shadowColor='rgba(0,0,0,.45)';
   ctx.shadowBlur=3;
   ctx.fill();
   ctx.shadowBlur=0;
-  ctx.lineWidth=3;
+  ctx.lineWidth=2.5;
   ctx.strokeStyle='#fff';
   ctx.stroke();
-  ctx.lineWidth=1.2;
+  ctx.lineWidth=1;
   ctx.strokeStyle='#15191b';
   ctx.stroke();
   ctx.fillStyle=route.text;
-  ctx.font='bold 11px system-ui,sans-serif';
+  ctx.font='bold 10px system-ui,sans-serif';
   ctx.textAlign='center';
   ctx.textBaseline='middle';
   ctx.fillText(route.short,x,y);
@@ -111,30 +111,34 @@ function drawBusMarker(x,y,route){
 
 /* ---- map ---- */
 const cv=$('#cv'),ctx=cv.getContext('2d'),wrap=$('#wrap');
-const BASES={dark:['https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png','#0f1214','© OpenStreetMap © CARTO'],
-  light:['https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png','#e8e6e0','© OpenStreetMap © CARTO'],
-  osm:['https://tile.openstreetmap.org/{z}/{x}/{y}.png','#d8d8d0','© OpenStreetMap'],
-  mbdark:['https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/512/{z}/{x}/{y}?access_token={t}','#0f1214','© Mapbox © OpenStreetMap',1],
-  mbstreets:['https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/512/{z}/{x}/{y}?access_token={t}','#e8e6e0','© Mapbox © OpenStreetMap',1],
-  mbsat:['https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/512/{z}/{x}/{y}?access_token={t}','#0f1214','© Mapbox © OpenStreetMap © Maxar',1],
-  esridark:['https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}','#0f1214','Tiles © Esri'],
-  esri:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}','#e8e6e0','Tiles © Esri'],
-  none:[null,'#0f1214','']};
+const BASES={tomtom:{url:'https://{s}.api.tomtom.com/maps/orbis/display/raster/tile/{z}/{x}/{y}?apiVersion=2&style=street-light&tileSize=256&key={t}',bg:'#e8e6e0',attribution:'© TomTom',key:'tomtom'},
+  dark:{url:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',bg:'#0f1214',attribution:'© OpenStreetMap © CARTO'},
+  light:{url:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',bg:'#e8e6e0',attribution:'© OpenStreetMap © CARTO'},
+  osm:{url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',bg:'#d8d8d0',attribution:'© OpenStreetMap'},
+  mbdark:{url:'https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/512/{z}/{x}/{y}?access_token={t}',bg:'#0f1214',attribution:'© Mapbox © OpenStreetMap',tileSize:512,key:'mapbox'},
+  mbstreets:{url:'https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/512/{z}/{x}/{y}?access_token={t}',bg:'#e8e6e0',attribution:'© Mapbox © OpenStreetMap',tileSize:512,key:'mapbox'},
+  mbsat:{url:'https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/512/{z}/{x}/{y}?access_token={t}',bg:'#0f1214',attribution:'© Mapbox © OpenStreetMap © Maxar',tileSize:512,key:'mapbox'},
+  esridark:{url:'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',bg:'#0f1214',attribution:'Tiles © Esri'},
+  esri:{url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',bg:'#e8e6e0',attribution:'Tiles © Esri'},
+  none:{url:null,bg:'#0f1214',attribution:''}};
 let token='';try{token=localStorage.getItem('mbtoken')||''}catch(e){}
-const usable=()=>BASES[base][0]&&(!BASES[base][3]||token);
-let base='dark',tiles=new Map(),tileErr=0,tileOk=0;
+const tomtomKey=window.MAPS_API_KEY||'';
+const keyForBase=()=>BASES[base].key==='tomtom'?tomtomKey:BASES[base].key==='mapbox'?token:'';
+const usable=()=>BASES[base].url&&(!BASES[base].key||keyForBase());
+let base='tomtom',tiles=new Map(),tileErr=0,tileOk=0;
 function tile(z,x,y){
   const k=z+'/'+x+'/'+y;let t=tiles.get(k);if(t)return t;
   if(tiles.size>500)tiles.clear();
-  t=new Image();t.referrerPolicy='no-referrer';
+  t=new Image();t.referrerPolicy=base==='tomtom'?'strict-origin-when-cross-origin':'no-referrer';
   t.onload=()=>{tileOk++;dirty=true};
-  t.onerror=()=>{if(++tileErr>=6&&!tileOk)showWarn(BASES[base][3]?'Тайлы Mapbox не загрузились. Проверьте токен (нужен публичный, pk., без ограничений по URL) и интернет.':'Фоновая карта не загрузилась, поэтому показаны только линии, остановки и автобусы. Выберите другую подложку или «Без подложки».')};
-  t.src=BASES[base][0].replace('{s}','abcd'[(x+y)%4]).replace('{t}',encodeURIComponent(token)).replace('{z}',z).replace('{x}',x).replace('{y}',y);
+  t.onerror=()=>{if(++tileErr>=6&&!tileOk)showWarn(BASES[base].key==='mapbox'?'Тайлы Mapbox не загрузились. Проверьте публичный токен и интернет.':'Фоновая карта не загрузилась. Проверьте API-ключ и настройки доступа, затем попробуйте другую подложку.')};
+  t.src=BASES[base].url.replace('{s}','abcd'[(x+y)%4]).replace('{t}',encodeURIComponent(keyForBase())).replace('{z}',z).replace('{x}',x).replace('{y}',y);
   tiles.set(k,t);return t;
 }
 function showWarn(m){$('#warn').textContent=m;$('#warn').hidden=false}
 function setBase(b){base=b;tiles.clear();tileErr=tileOk=0;$('#warn').hidden=true;
-  $('#tkl').hidden=!BASES[b][3];if(BASES[b][3]&&!token)showWarn('Вставьте публичный токен Mapbox (начинается с pk.) в поле вверху. Пока токена нет, показан фон без карты.');$('#attr').textContent=BASES[b][2];dirty=true}
+  $('#tkl').hidden=BASES[b].key!=='mapbox';if(BASES[b].key==='mapbox'&&!token)showWarn('Вставьте публичный токен Mapbox (начинается с pk.) в поле вверху. Пока токена нет, показан фон без карты.');if(BASES[b].key==='tomtom'&&!tomtomKey)showWarn('Ключ TomTom не передан при сборке страницы. Проверьте секрет MAPS_API_KEY в GitHub.');$('#attr').textContent=BASES[b].attribution;dirty=true;
+  if(b==='tomtom'&&tomtomKey){fetch(`https://api.tomtom.com/maps/orbis/copyrights/caption?apiVersion=2&key=${encodeURIComponent(tomtomKey)}`).then(response=>{if(!response.ok)throw new Error('TomTom attribution request failed');return response.json()}).then(data=>{if(base==='tomtom'&&data.copyrightsCaption)$('#attr').textContent=data.copyrightsCaption}).catch(()=>{})}}
 function fit(){
   const W=cv.clientWidth||600,H=cv.clientHeight||400;
   let x0=1,x1=0,y0=1,y1=0;stops.forEach(s=>{x0=Math.min(x0,s.x);x1=Math.max(x1,s.x);y0=Math.min(y0,s.y);y1=Math.max(y1,s.y)});
@@ -148,10 +152,10 @@ function zoomAt(px,py,nz){
 function draw(){
   const dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;
   if(cv.width!=Math.round(W*dpr)||cv.height!=Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
-  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle=BASES[base][1];ctx.fillRect(0,0,W,H);
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle=BASES[base].bg;ctx.fillRect(0,0,W,H);
   const K=256*2**Z,sx=x=>(x-cx)*K+W/2,sy=y=>(y-cy)*K+H/2;
   if(usable()){
-    const zt=Math.min(19,Math.max(0,Math.round(Z)-(BASES[base][3]?1:0))),n=2**zt,ts=K/n;
+    const zt=Math.min(22,Math.max(0,Math.round(Z)-(BASES[base].tileSize===512?1:0))),n=2**zt,ts=K/n;
     const xa=Math.floor((cx-W/2/K)*n),xb=Math.floor((cx+W/2/K)*n),ya=Math.max(0,Math.floor((cy-H/2/K)*n)),yb=Math.min(n-1,Math.floor((cy+H/2/K)*n));
     for(let x=xa;x<=xb;x++)for(let y=ya;y<=yb;y++){
       const im=tile(zt,((x%n)+n)%n,y);
@@ -262,5 +266,5 @@ function loop(now){
 }
 $('#set').innerHTML='<option value="auto">Авто (по дате)</option>'+SETS.map(s=>`<option value="${s.id}">${s.label}</option>`).join('');
 $('#set').onchange=buildDay;
-setNow();setBase('esridark');buildDay();
+setNow();setBase('tomtom');buildDay();
 requestAnimationFrame(()=>{fit();requestAnimationFrame(loop)});
