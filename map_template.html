@@ -41,10 +41,8 @@ button{cursor:pointer}button.p{background:var(--acc);color:#04170d;border-color:
   <label>Скорость <select id="speed"><option value="1">1×</option><option value="10">10×</option><option value="60">60×</option><option value="300">300×</option></select></label>
   <label>Расписание <select id="set"></select></label>
   <label>Стиль карты <select id="style">
-    <option value="street-light">TomTom светлая</option>
-    <option value="street-dark">TomTom тёмная</option>
-    <option value="mono-light">TomTom монохромная светлая</option>
-    <option value="mono-dark">TomTom монохромная тёмная</option>
+    <option value="dark-gray">Esri тёмная</option>
+    <option value="light-gray">Esri светлая</option>
   </select></label>
 </header>
 <div id="bar">
@@ -66,7 +64,6 @@ button{cursor:pointer}button.p{background:var(--acc);color:#04170d;border-color:
 <script>
 window.SUPABASE_URL=__SUPABASE_URL__;
 window.SUPABASE_ANON_KEY=__SUPABASE_ANON_KEY__;
-window.MAPS_API_KEY=__MAPS_API_KEY__;
 </script>
 <script src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"></script>
 <script type="module">

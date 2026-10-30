@@ -21,7 +21,7 @@ const hms=t=>{t=Math.floor(t)%86400;return [t/3600|0,t/60%60|0,t%60].map(n=>Stri
 const vivid=c=>{const n=parseInt(c.slice(1),16),r=n>>16,g=(n>>8)&255,b=n&255;return (r*299+g*587+b*114)/1000<90?'#'+[r,g,b].map(v=>Math.round(v+(255-v)*.6).toString(16).padStart(2,'0')).join(''):c};
 const SETS=DATA.sets;
 let cur=null,stops,routes,trips,SH=[];
-let map=null,currentStyle='street-light';
+let map=null,currentStyle='dark-gray';
 function useSet(S){
   if(cur===S)return;cur=S;
   stops=S.stops.map(s=>({name:s[0],x:mx(s[2]),y:my(s[1])}));
@@ -112,14 +112,9 @@ function drawBusMarker(x,y,route){
 
 /* ---- vector map ---- */
 const cv=$('#cv'),ctx=cv.getContext('2d'),wrap=$('#wrap');
-const tomtomKey=window.MAPS_API_KEY||'';
-const styleUrl=style=>`https://api.tomtom.com/maps/orbis/assets/styles/0.0.0-0/style?apiVersion=1&key=${encodeURIComponent(tomtomKey)}&map=basic_${encodeURIComponent(style)}`;
+const esriStyle=style=>({version:8,sources:{esri:{type:'raster',tiles:[`https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_${style==='dark-gray'?'Dark':'Light'}_Gray_Base/MapServer/tile/{z}/{y}/{x}`],tileSize:256,maxzoom:16,attribution:'Tiles © Esri'}},layers:[{id:'esri-gray-canvas',type:'raster',source:'esri'}]});
 function showWarn(m){$('#warn').textContent=m;$('#warn').hidden=false}
-function setMapStyle(style){const changed=style!==currentStyle;currentStyle=style;$('#warn').hidden=true;dirty=true;
-  if(!tomtomKey){showWarn('Ключ TomTom не передан при сборке страницы. Проверьте секрет MAPS_API_KEY в GitHub.');return}
-  if(map&&changed)map.setStyle(styleUrl(style));
-  fetch(`https://api.tomtom.com/maps/orbis/copyrights/caption?apiVersion=2&key=${encodeURIComponent(tomtomKey)}`).then(response=>{if(!response.ok)throw new Error('TomTom attribution request failed');return response.json()}).then(data=>{if(data.copyrightsCaption)$('#attr').textContent=data.copyrightsCaption}).catch(()=>{$('#attr').textContent='© TomTom © OpenStreetMap'});
-}
+function setMapStyle(style){const changed=style!==currentStyle;currentStyle=style;$('#warn').hidden=true;$('#attr').textContent='Tiles © Esri';dirty=true;if(map&&changed)map.setStyle(esriStyle(style))}
 function fit(){
   if(!map||!stops?.length)return;
   let x0=1,x1=0,y0=1,y1=0;stops.forEach(s=>{x0=Math.min(x0,s.x);x1=Math.max(x1,s.x);y0=Math.min(y0,s.y);y1=Math.max(y1,s.y)});
@@ -150,7 +145,7 @@ function draw(){
       ctx.fillStyle=route.color;ctx.fill();ctx.lineWidth=selectedStop===stopIndex?3:2;
       ctx.strokeStyle=selectedStop===stopIndex?'#ffd166':'#fff';ctx.stroke();
       if(zoom>=14){
-        ctx.fillStyle=currentStyle.endsWith('light')?'#222':'#f1f4f2';
+        ctx.fillStyle=currentStyle==='light-gray'?'#222':'#f1f4f2';
         ctx.fillText(stop.name,x+8,y+4);
       }
     });
@@ -181,9 +176,9 @@ function draw(){
 }
 
 /* ---- input ---- */
-map=new maplibregl.Map({container:'map',style:tomtomKey?styleUrl(currentStyle):{version:8,sources:{},layers:[]},center:[2.02,41.56],zoom:12,attributionControl:false});
-map.on('load',()=>{if(tomtomKey)$('#warn').hidden=true;fit();dirty=true});
-map.on('error',event=>{if(event.error&&!map.isStyleLoaded())showWarn('Не удалось загрузить векторную карту TomTom. Проверьте MAPS_API_KEY и разрешённый домен.')});
+map=new maplibregl.Map({container:'map',style:esriStyle(currentStyle),center:[2.02,41.56],zoom:12,attributionControl:false});
+map.on('load',()=>{fit();dirty=true});
+map.on('error',event=>{if(event.error&&!map.isStyleLoaded())showWarn('Не удалось загрузить подложку Esri. Проверьте подключение к интернету.')});
 map.on('move',()=>{dirty=true});
 map.on('resize',()=>{dirty=true});
 map.on('click',e=>{

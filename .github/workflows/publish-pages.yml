@@ -27,7 +27,6 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL || 'https://example.supabase.co' }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY || 'pr-validation-only' }}
-          MAPS_API_KEY: ${{ secrets.MAPS_API_KEY || (github.event_name == 'pull_request' && 'pr-validation-only') }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: public
