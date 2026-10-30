@@ -8,11 +8,11 @@ try {
   } });
   if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
   const data = await response.json();
-  if (!data?.length) throw new Error('В таблице feeds пока нет расписаний.');
+  if (!data?.length) throw new Error('No schedule feeds were found in the feeds table.');
   const latest = data.map(row => row.updated_at).filter(Boolean).sort().at(-1);
   DATA = { generated: latest ? new Date(latest).toLocaleDateString('ru-RU') : 'неизвестно', sets: data.map(row => row.data) };
 } catch (error) {
-  $('#info').textContent = `Не удалось загрузить расписание из Supabase: ${error.message}`;
+  $('#info').textContent = `Could not load schedules from Supabase: ${error.message}`;
   throw error;
 }
 const mx=lon=>(lon+180)/360, my=lat=>{const s=Math.sin(lat*Math.PI/180);return .5-Math.log((1+s)/(1-s))/(4*Math.PI)};

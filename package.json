@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "scripts": { "build": "node build_map.mjs --out public/index.html" },
+  "scripts": {
+    "build": "node scripts/publish-page.js --out public/index.html",
+    "update:schedules": "node scripts/update-schedules.js"
+  },
   "dependencies": { "fflate": "^0.8.2" }
 }
