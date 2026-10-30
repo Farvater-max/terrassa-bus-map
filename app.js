@@ -89,13 +89,7 @@ const escapeHTML=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<'
 function drawBusMarker(x,y,route){
   ctx.save();
   ctx.beginPath();
-  ctx.moveTo(x-3,y-16);
-  ctx.bezierCurveTo(x-12,y-20,x-20,y-12,x-18,y-3);
-  ctx.bezierCurveTo(x-17,y+7,x-10,y+14,x-1,y+14);
-  ctx.lineTo(x+16,y+17);
-  ctx.bezierCurveTo(x+9,y+9,x+6,y+1,x+3,y-9);
-  ctx.bezierCurveTo(x+2,y-13,x,y-16,x-3,y-16);
-  ctx.closePath();
+  ctx.roundRect(x-16,y-16,32,32,10);
   ctx.fillStyle=route.color;
   ctx.shadowColor='rgba(0,0,0,.45)';
   ctx.shadowBlur=3;
@@ -107,17 +101,11 @@ function drawBusMarker(x,y,route){
   ctx.lineWidth=1.2;
   ctx.strokeStyle='#15191b';
   ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(x-10,y-5);
-  ctx.bezierCurveTo(x-9,y-11,x-3,y-14,x+1,y-11);
-  ctx.strokeStyle='rgba(0,0,0,.55)';
-  ctx.lineWidth=1.8;
-  ctx.stroke();
   ctx.fillStyle=route.text;
-  ctx.font='bold 10px system-ui,sans-serif';
+  ctx.font='bold 11px system-ui,sans-serif';
   ctx.textAlign='center';
   ctx.textBaseline='middle';
-  ctx.fillText(route.short,x-6,y+1);
+  ctx.fillText(route.short,x,y);
   ctx.restore();
 }
 
