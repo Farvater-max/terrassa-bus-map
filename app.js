@@ -19,7 +19,7 @@ const mx=lon=>(lon+180)/360, my=lat=>{const s=Math.sin(lat*Math.PI/180);return .
 const hms=t=>{t=Math.floor(t)%86400;return [t/3600|0,t/60%60|0,t%60].map(n=>String(n).padStart(2,'0')).join(':')};
 const vivid=c=>{const n=parseInt(c.slice(1),16),r=n>>16,g=(n>>8)&255,b=n&255;return (r*299+g*587+b*114)/1000<90?'#'+[r,g,b].map(v=>Math.round(v+(255-v)*.6).toString(16).padStart(2,'0')).join(''):c};
 const SETS=DATA.sets;
-let cur=null,stops,routes,trips,lines,SH=[];
+let cur=null,stops,routes,trips,SH=[];
 function useSet(S){
   if(cur===S)return;cur=S;
   stops=S.stops.map(s=>({name:s[0],x:mx(s[2]),y:my(s[1])}));
@@ -27,12 +27,9 @@ function useSet(S){
   trips=S.trips.map((t,i)=>({id:i,P:S.pats[t[0]],s0:t[1],route:t[2],svc:S.svc[t[3]],head:S.heads[t[4]],end:t[1]+S.pats[t[0]][1].at(-1)}));
   SH=(S.shapes||[]).map(sh=>{const pts=sh.map(p=>[mx(p[1]),my(p[0])]),cum=[0];
     for(let i=1;i<pts.length;i++)cum.push(cum[i-1]+Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]));return{pts,cum}});
-  lines=[];const seen=new Set();
-  trips.forEach(t=>{const P=t.P,sh=P[2]!=null?SH[P[2]]:null,k=t.route+'|'+P[0].join('>');if(seen.has(k))return;seen.add(k);
-    lines.push({route:t.route,pts:sh?sh.pts.slice(P[3][0],P[3].at(-1)+1).map(q=>({x:q[0],y:q[1]})):P[0].map(i=>stops[i])})});
-  hidden.clear();sel=null;buildChips();fit();
+  hidden.clear();sel=null;selectedTrip=null;selectedStop=null;buildChips();fit();
 }
-let day=[],hidden=new Set(),simT=0,playing=true,speed=1,last=performance.now(),dirty=true,sel=null,hits=[],noteDate='';
+let day=[],hidden=new Set(),simT=0,playing=true,speed=1,last=performance.now(),dirty=true,sel=null,selectedTrip=null,selectedStop=null,busHits=[],stopHits=[],noteDate='';
 let cx=.5,cy=.5,Z=12;
 
 function services(S,ymd,ignore){
@@ -43,6 +40,7 @@ function services(S,ymd,ignore){
 }
 const span=S=>S.cal.length?Math.max(...S.cal.map(c=>+c[3]))-Math.min(...S.cal.map(c=>+c[2])):1e9;
 function buildDay(){
+  sel=null;selectedTrip=null;selectedStop=null;
   const ymd=$('#date').value.replace(/-/g,''),mode=$('#set').value;let S,note='';
   if(mode=='auto'){
     const hits=SETS.filter(s=>services(s,ymd,false).size).sort((a,b)=>span(a)-span(b));
@@ -68,6 +66,25 @@ function pos(t,now){
       const a=stops[S[i]],b=stops[S[i+1]];return [a.x+(b.x-a.x)*f,a.y+(b.y-a.y)*f]}}
   const e=stops[S[n-1]];return [e.x,e.y];
 }
+
+function tripPath(t){
+  const pattern=t.P;
+  if(pattern[2]!=null){
+    const shape=SH[pattern[2]],indexes=pattern[3];
+    return shape.pts.slice(indexes[0],indexes.at(-1)+1).map(([x,y])=>({x,y}));
+  }
+  return pattern[0].map(index=>stops[index]);
+}
+
+function transferLines(stopIndex){
+  return [...new Set(day
+    .filter(trip=>trip.P[0].includes(stopIndex)&&trip.route!==selectedTrip?.route)
+    .map(trip=>trip.route))]
+    .sort((a,b)=>routes[a].short.localeCompare(routes[b].short,undefined,{numeric:true}))
+    .map(routeIndex=>routes[routeIndex].short);
+}
+
+const escapeHTML=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 
 /* ---- map ---- */
 const cv=$('#cv'),ctx=cv.getContext('2d'),wrap=$('#wrap');
@@ -117,20 +134,35 @@ function draw(){
       const im=tile(zt,((x%n)+n)%n,y);
       if(im.complete&&im.naturalWidth)ctx.drawImage(im,sx(x/n),sy(y/n),ts+.5,ts+.5)}
   }
-  ctx.lineJoin='round';ctx.lineCap='round';ctx.lineWidth=3;ctx.globalAlpha=.65;
-  lines.forEach(l=>{if(hidden.has(l.route))return;ctx.strokeStyle=routes[l.route].line;ctx.beginPath();
-    l.pts.forEach((p,i)=>i?ctx.lineTo(sx(p.x),sy(p.y)):ctx.moveTo(sx(p.x),sy(p.y)));ctx.stroke()});
-  ctx.globalAlpha=1;ctx.fillStyle='#1b2124';ctx.strokeStyle='#93a09a';ctx.lineWidth=1;
-  const names=Z>=15.5;ctx.font='11px system-ui,sans-serif';ctx.textAlign='left';
-  stops.forEach(s=>{const x=sx(s.x),y=sy(s.y);if(x<-10||y<-10||x>W+10||y>H+10)return;
-    ctx.beginPath();ctx.arc(x,y,3,0,7);ctx.fill();ctx.stroke();
-    if(names){ctx.fillStyle=base=='light'||base=='osm'?'#222':'#cfd8d3';ctx.fillText(s.name,x+6,y+3);ctx.fillStyle='#1b2124'}});
-  hits=[];let n=0;
+  ctx.lineJoin='round';ctx.lineCap='round';
+  stopHits=[];
+  if(selectedTrip&&!hidden.has(selectedTrip.route)){
+    const route=routes[selectedTrip.route],path=tripPath(selectedTrip);
+    if(path.length){
+      ctx.beginPath();ctx.lineWidth=4;ctx.globalAlpha=.9;ctx.strokeStyle=route.line;
+      path.forEach((point,i)=>i?ctx.lineTo(sx(point.x),sy(point.y)):ctx.moveTo(sx(point.x),sy(point.y)));
+      ctx.stroke();ctx.globalAlpha=1;
+    }
+    ctx.font='11px system-ui,sans-serif';ctx.textAlign='left';
+    selectedTrip.P[0].forEach(stopIndex=>{
+      const stop=stops[stopIndex],x=sx(stop.x),y=sy(stop.y);
+      if(x<-12||y<-12||x>W+12||y>H+12)return;
+      stopHits.push({x,y,stopIndex});
+      ctx.beginPath();ctx.arc(x,y,selectedStop===stopIndex?7:5,0,Math.PI*2);
+      ctx.fillStyle=route.color;ctx.fill();ctx.lineWidth=selectedStop===stopIndex?3:2;
+      ctx.strokeStyle=selectedStop===stopIndex?'#ffd166':'#fff';ctx.stroke();
+      if(Z>=14){
+        ctx.fillStyle=base==='light'||base==='osm'?'#222':'#f1f4f2';
+        ctx.fillText(stop.name,x+8,y+4);
+      }
+    });
+  }
+  busHits=[];let n=0;
   ctx.font='bold 11px system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
   for(const t of day){
     if(hidden.has(t.route)||simT<t.s0||simT>t.end)continue;const p=pos(t,simT);if(!p)continue;n++;
     const x=sx(p[0]),y=sy(p[1]);if(x<-20||y<-20||x>W+20||y>H+20)continue;
-    const r=routes[t.route];hits.push({x,y,t});
+    const r=routes[t.route];busHits.push({x,y,t});
     ctx.beginPath();ctx.arc(x,y,13,0,7);ctx.fillStyle=r.color;ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='#fff';ctx.stroke();
     ctx.fillStyle=r.text;ctx.fillText(r.short,x,y+.5)}
   ctx.textBaseline='alphabetic';
@@ -139,9 +171,13 @@ function draw(){
   const pop=$('#pop');
   if(sel){
     let x,y,html;
-    if(sel.t){const h=hits.find(h=>h.t.id==sel.t.id);if(h){x=h.x;y=h.y-0;const t=sel.t,rel=simT-t.s0;let i=t.P[1].findIndex(v=>v>rel);if(i<0)i=t.P[0].length-1;
-      html=`<b>Линия ${routes[t.route].short}</b> → ${t.head}<br>Следующая: ${stops[t.P[0][i]].name}<br>По расписанию: ${hms(t.s0+t.P[1][i])}`}}
-    else{x=sx(sel.s.x);y=sy(sel.s.y);html=`<b>${sel.s.name}</b>`}
+    if(sel.t){const h=busHits.find(hit=>hit.t.id===sel.t.id);if(h){x=h.x;y=h.y;const t=sel.t,rel=simT-t.s0;let i=t.P[1].findIndex(v=>v>rel);if(i<0)i=t.P[0].length-1;
+      html=`<b>Линия ${escapeHTML(routes[t.route].short)}</b> → ${escapeHTML(t.head)}<br>Следующая: ${escapeHTML(stops[t.P[0][i]].name)}<br>По расписанию: ${hms(t.s0+t.P[1][i])}`}}
+    else if(sel.stopIndex!=null){
+      const stop=stops[sel.stopIndex],otherLines=transferLines(sel.stopIndex);
+      x=sx(stop.x);y=sy(stop.y);
+      html=`<b>${escapeHTML(stop.name)}</b><br>Пересадка на линии: ${otherLines.length?otherLines.map(escapeHTML).join(', '):'других линий нет'}`;
+    }
     if(html){pop.hidden=false;pop.innerHTML=html;pop.style.left=x+'px';pop.style.top=y+'px'}else{pop.hidden=true;sel=null}
   }else pop.hidden=true;
 }
@@ -161,9 +197,16 @@ cv.addEventListener('pointermove',e=>{
 cv.addEventListener('pointerup',e=>{
   ptrs.delete(e.pointerId);
   if(moved<6&&!pinch){
-    let best=null,bd=20;hits.forEach(h=>{const d=Math.hypot(h.x-e.offsetX,h.y-e.offsetY);if(d<bd){bd=d;best={t:h.t}}});
-    if(!best){const W=cv.clientWidth,H=cv.clientHeight,K=256*2**Z;let sd=14;stops.forEach(s=>{const d=Math.hypot((s.x-cx)*K+W/2-e.offsetX,(s.y-cy)*K+H/2-e.offsetY);if(d<sd){sd=d;best={s}}})}
-    sel=best;dirty=true}
+    let bestBus=null,busDistance=20;
+    busHits.forEach(hit=>{const distance=Math.hypot(hit.x-e.offsetX,hit.y-e.offsetY);if(distance<busDistance){busDistance=distance;bestBus=hit}});
+    if(bestBus){selectedTrip=bestBus.t;selectedStop=null;sel={t:bestBus.t}}
+    else{
+      let bestStop=null,stopDistance=15;
+      stopHits.forEach(hit=>{const distance=Math.hypot(hit.x-e.offsetX,hit.y-e.offsetY);if(distance<stopDistance){stopDistance=distance;bestStop=hit}});
+      if(bestStop){selectedStop=bestStop.stopIndex;sel={stopIndex:bestStop.stopIndex}}
+      else{selectedTrip=null;selectedStop=null;sel=null}
+    }
+    dirty=true}
   if(!ptrs.size)pinch=0;
 });
 cv.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);pinch=0});
@@ -175,7 +218,7 @@ $('#zo').onclick=()=>zoomAt(cv.clientWidth/2,cv.clientHeight/2,Z-1);
 function buildChips(){$('#chips').innerHTML='';Object.keys(routes).sort((a,b)=>routes[a].short.localeCompare(routes[b].short,undefined,{numeric:true})).forEach(id=>{
   const r=routes[id],c=document.createElement('span');c.className='chip';c.textContent=r.short;
   c.style.borderColor=r.line;c.style.background=r.color;c.style.color=r.text;
-  c.onclick=()=>{id=+id;hidden.has(id)?hidden.delete(id):hidden.add(id);c.classList.toggle('off',hidden.has(id));dirty=true};
+  c.onclick=()=>{id=+id;hidden.has(id)?hidden.delete(id):hidden.add(id);if(hidden.has(id)&&selectedTrip?.route===id){selectedTrip=null;selectedStop=null;sel=null}c.classList.toggle('off',hidden.has(id));dirty=true};
   $('#chips').appendChild(c)})}
 function setNow(){const d=new Date();simT=d.getHours()*3600+d.getMinutes()*60+d.getSeconds();dirty=true}
 const d0=new Date();$('#date').value=d0.getFullYear()+'-'+String(d0.getMonth()+1).padStart(2,'0')+'-'+String(d0.getDate()).padStart(2,'0');
