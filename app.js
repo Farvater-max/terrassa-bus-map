@@ -160,6 +160,7 @@ function draw(){
   busHits=[];let n=0;
   ctx.font='bold 11px system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
   for(const t of day){
+    if(selectedTrip&&t.id!==selectedTrip.id)continue;
     if(hidden.has(t.route)||simT<t.s0||simT>t.end)continue;const p=pos(t,simT);if(!p)continue;n++;
     const x=sx(p[0]),y=sy(p[1]);if(x<-20||y<-20||x>W+20||y>H+20)continue;
     const r=routes[t.route];busHits.push({x,y,t});
