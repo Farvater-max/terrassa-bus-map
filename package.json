@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/publish-page.js --out public/index.html",
+    "dev": "node scripts/dev-server.js",
     "update:schedules": "node scripts/update-schedules.js"
   },
   "dependencies": { "fflate": "^0.8.2" }
