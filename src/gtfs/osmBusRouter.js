@@ -7,6 +7,26 @@ const ROUTABLE_HIGHWAYS = new Set([
 const NON_ROAD_HIGHWAYS = new Set(['bridleway', 'corridor', 'cycleway', 'footway', 'path', 'steps']);
 const GRID_CELL_DEGREES = 0.0004;
 const MAX_SNAP_DISTANCE_METERS = 35;
+const DEFAULT_PREFERRED_CORRIDOR_METERS = 30;
+const HIGHWAY_COST_FACTOR = {
+  motorway: 1,
+  motorway_link: 1,
+  trunk: 1,
+  trunk_link: 1,
+  primary: 1,
+  primary_link: 1,
+  secondary: 1,
+  secondary_link: 1,
+  tertiary: 1.04,
+  tertiary_link: 1.04,
+  unclassified: 1.08,
+  residential: 1.12,
+  living_street: 1.16,
+  service: 1.18,
+  road: 1.1,
+  track: 1.2,
+  pedestrian: 1.2,
+};
 
 function radians(value) {
   return value * Math.PI / 180;
@@ -18,6 +38,42 @@ function distanceMeters(a, b) {
   const haversine = Math.sin(latitudeDelta / 2) ** 2
     + Math.cos(radians(a[0])) * Math.cos(radians(b[0])) * Math.sin(longitudeDelta / 2) ** 2;
   return 12_742_000 * Math.asin(Math.sqrt(haversine));
+}
+
+function distancePointToSegmentMeters(point, start, end) {
+  const cosine = Math.cos(radians(point[0]));
+  const startX = (start[1] - point[1]) * cosine;
+  const startY = start[0] - point[0];
+  const endX = (end[1] - point[1]) * cosine;
+  const endY = end[0] - point[0];
+  const deltaX = endX - startX;
+  const deltaY = endY - startY;
+  const lengthSquared = deltaX ** 2 + deltaY ** 2;
+  const fraction = lengthSquared
+    ? Math.max(0, Math.min(1, -(startX * deltaX + startY * deltaY) / lengthSquared))
+    : 0;
+  return Math.hypot(startX + fraction * deltaX, startY + fraction * deltaY) * 111_000;
+}
+
+function distanceToPolylineMeters(point, polyline) {
+  if (!Array.isArray(polyline) || !polyline.length) return Infinity;
+  if (polyline.length === 1) return distanceMeters(point, polyline[0]);
+  let nearest = Infinity;
+  for (let index = 1; index < polyline.length; index++) {
+    nearest = Math.min(nearest, distancePointToSegmentMeters(point, polyline[index - 1], polyline[index]));
+  }
+  return nearest;
+}
+
+function segmentWithinCorridor(segment, preferredShape, corridorMeters) {
+  for (const fraction of [0, 0.5, 1]) {
+    const point = [
+      segment.start[0] + (segment.end[0] - segment.start[0]) * fraction,
+      segment.start[1] + (segment.end[1] - segment.start[1]) * fraction,
+    ];
+    if (distanceToPolylineMeters(point, preferredShape) > corridorMeters) return false;
+  }
+  return true;
 }
 
 function sameCoordinate(a, b) {
@@ -164,8 +220,10 @@ export function createOsmBusRouter(data) {
   const addDirectedSegment = (from, to, way) => {
     const start = nodeCoordinates(from);
     const end = nodeCoordinates(to);
-    const segment = { from, to, start, end, length: distanceMeters(start, end), wayId: way.id };
-    addEdge(from, { to, length: segment.length, wayId: way.id });
+    const length = distanceMeters(start, end);
+    const costFactor = HIGHWAY_COST_FACTOR[way.tags.highway] ?? 1.1;
+    const segment = { from, to, start, end, length, cost: length * costFactor, wayId: way.id };
+    addEdge(from, { to, length, cost: segment.cost, wayId: way.id, segment });
     const segmentId = segments.push(segment) - 1;
     const minLat = Math.floor(Math.min(start[0], end[0]) / GRID_CELL_DEGREES);
     const maxLat = Math.floor(Math.max(start[0], end[0]) / GRID_CELL_DEGREES);
@@ -192,7 +250,7 @@ export function createOsmBusRouter(data) {
     }
   }
 
-  const nearbyRoadSegments = stop => {
+  const nearbyRoadSegments = (stop, preferredShape, preferredCorridorMeters) => {
     const latitude = Number(stop[1]);
     const longitude = Number(stop[2]);
     const centerLat = Math.floor(latitude / GRID_CELL_DEGREES);
@@ -222,16 +280,20 @@ export function createOsmBusRouter(data) {
             segment.start[1] + (segment.end[1] - segment.start[1]) * fraction,
           ];
           const distance = distanceMeters([latitude, longitude], point);
-          if (distance <= MAX_SNAP_DISTANCE_METERS) candidates.push({ segment, fraction, point, distance });
+          if (distance <= MAX_SNAP_DISTANCE_METERS
+            && (!preferredShape || (distanceToPolylineMeters(point, preferredShape) <= preferredCorridorMeters
+              && segmentWithinCorridor(segment, preferredShape, preferredCorridorMeters)))) {
+            candidates.push({ segment, fraction, point, distance });
+          }
         }
       }
     }
     return candidates;
   };
 
-  const routeLeg = (fromStop, toStop) => {
-    const sources = nearbyRoadSegments(fromStop);
-    const targets = nearbyRoadSegments(toStop);
+  const routeLegWithOptions = (fromStop, toStop, { preferredShape, preferredCorridorMeters } = {}) => {
+    const sources = nearbyRoadSegments(fromStop, preferredShape, preferredCorridorMeters);
+    const targets = nearbyRoadSegments(toStop, preferredShape, preferredCorridorMeters);
     if (!sources.length || !targets.length) {
       throw new Error(`No bus-accessible OSM road within ${MAX_SNAP_DISTANCE_METERS}m of ${!sources.length ? fromStop[0] : toStop[0]}.`);
     }
@@ -244,7 +306,7 @@ export function createOsmBusRouter(data) {
     for (const source of sources) {
       const candidate = {
         node: source.segment.to,
-        distance: source.distance + source.segment.length * (1 - source.fraction),
+        distance: source.distance + source.segment.cost * (1 - source.fraction),
         prefix: [source.point, source.segment.end],
       };
       if (candidate.distance >= (distances.get(candidate.node) ?? Infinity)) continue;
@@ -255,7 +317,7 @@ export function createOsmBusRouter(data) {
     for (const target of targets) {
       const candidate = {
         node: target.segment.from,
-        distance: target.distance + target.segment.length * target.fraction,
+        distance: target.distance + target.segment.cost * target.fraction,
         suffix: [target.point],
       };
       if (!targetByNode.has(candidate.node)) targetByNode.set(candidate.node, []);
@@ -269,7 +331,7 @@ export function createOsmBusRouter(data) {
       for (const target of targets) {
         if (source.segment !== target.segment || target.fraction < source.fraction) continue;
         const total = source.distance
-          + source.segment.length * (target.fraction - source.fraction)
+          + source.segment.cost * (target.fraction - source.fraction)
           + target.distance;
         if (total >= bestTotal) continue;
         bestTotal = total;
@@ -296,7 +358,8 @@ export function createOsmBusRouter(data) {
         }
       }
       for (const edge of graph.get(node) || []) {
-        const nextDistance = distance + edge.length;
+        if (preferredShape && !segmentWithinCorridor(edge.segment, preferredShape, preferredCorridorMeters)) continue;
+        const nextDistance = distance + edge.cost;
         if (nextDistance >= (distances.get(edge.to) ?? Infinity)) continue;
         distances.set(edge.to, nextDistance);
         previous.set(edge.to, node);
@@ -323,6 +386,12 @@ export function createOsmBusRouter(data) {
       || Math.abs(coordinate[0] - coordinates[index - 1][0]) > 1e-7
       || Math.abs(coordinate[1] - coordinates[index - 1][1]) > 1e-7
     ));
+  };
+
+  const routeLeg = (fromStop, toStop, options = {}) => {
+    const preferredShape = options.preferredShape?.length >= 2 ? options.preferredShape : null;
+    const preferredCorridorMeters = options.preferredCorridorMeters ?? DEFAULT_PREFERRED_CORRIDOR_METERS;
+    return routeLegWithOptions(fromStop, toStop, { preferredShape, preferredCorridorMeters });
   };
 
   return {
