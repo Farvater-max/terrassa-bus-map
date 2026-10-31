@@ -1,4 +1,4 @@
-name: Update bus schedules
+name: Prepare bus routes and persist schedules
 on:
   schedule:
     - cron: '0 5 * * 1'
@@ -18,9 +18,14 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Download GTFS and update Supabase when available
-        run: node scripts/update-schedules.js
+      - name: Prepare GTFS feeds and OSM bus routes
+        run: npm run prepare:schedules
         env:
           NAP_API_KEY: ${{ secrets.NAP_API_KEY }}
+          SCHEDULE_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Persist validated prepared schedules
+        run: npm run persist:schedules
+        env:
+          SCHEDULE_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
