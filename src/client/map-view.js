@@ -182,19 +182,28 @@ export function createMapView({ canvas, onSelect, onMapChange, translate }) {
         .trim()
         .replace(/\s+/g, ' ')
         .toLocaleLowerCase();
-      const hasFgcConnection = normalizedStopName.includes('estacio rambla')
-        || normalizedStopName.includes('terrassa rambla');
+      const fgcStopNames = ['estacio rambla', 'vallparadis universitat', 'vallparadis-universitat', 'estacio nord', 'estacio nord-2'];
+      const renfeStopNames = ['estacio nord', 'estacio nord-2', 'estacio est'];
+      const hasFgcConnection = fgcStopNames.some(name => normalizedStopName.includes(name));
+      const hasRenfeConnection = renfeStopNames.some(name => normalizedStopName.includes(name));
       const fgcIcon = hasFgcConnection
         ? `<span class="fgc-badge" role="img" aria-label="${escapeHTML(translate('popup.fgc'))}" title="${escapeHTML(translate('popup.fgc'))}">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3h-1l2 2v1h-2l-3-3h-2l-3 3H6v-1l2-2H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Zm0 3v6h10V6H7Zm1 9a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm8 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z"/></svg>
+            <img src="./src/icons/fgc.png" alt="FGC icon image">
             <span>FGC</span>
           </span>`
         : '';
-      const noRoutes = !otherRoutes.length && !fgcIcon;
-      html = `<b>${escapeHTML(stop.name)}</b><br>${escapeHTML(translate('popup.transfers'))}: `
-        + (noRoutes
-          ? escapeHTML(translate('popup.noTransfers'))
-          : `<span class="transfer-badges">${lineIcons}${fgcIcon}</span>`);
+      const renfeIcon = hasRenfeConnection
+        ? `<span class="renfe-badge" role="img" aria-label="${escapeHTML(translate('popup.renfe'))}" title="${escapeHTML(translate('popup.renfe'))}">
+            <img src="./src/icons/renfe.png" alt="Renfe icon image">
+            <span>Renfe</span>
+          </span>`
+        : '';
+      const hasTransfers = otherRoutes.length > 0 || Boolean(fgcIcon) || Boolean(renfeIcon);
+      html = `<b>${escapeHTML(stop.name)}</b>`;
+      if (hasTransfers) {
+        html += `<br>${escapeHTML(translate('popup.transfers'))} `
+          + `<span class="transfer-badges">${lineIcons}${fgcIcon}${renfeIcon}</span>`;
+      }
     }
 
     if (!html) {

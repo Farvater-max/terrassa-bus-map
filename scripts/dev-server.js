@@ -27,7 +27,8 @@ await loadEnvFile();
 
 const outputDirectory = resolve('.dev');
 const outputPath = resolve(outputDirectory, 'index.html');
-const port = Number(process.env.PORT || 5173);
+const requestedPort = Number(process.env.PORT || 5173);
+let port = requestedPort;
 const host = process.env.HOST || '127.0.0.1';
 let building = Promise.resolve();
 
@@ -48,6 +49,7 @@ await build();
 const contentTypes = {
   '.css': 'text/css; charset=utf-8',
   '.html': 'text/html; charset=utf-8',
+  '.png': 'image/png',
   '.js': 'text/javascript; charset=utf-8',
 };
 
@@ -66,7 +68,8 @@ const server = createServer(async (request, response) => {
   const isAllowed = assetRelativePath === 'index.html'
     || assetRelativePath === 'app.js'
     || assetRelativePath === 'styles.css'
-    || assetRelativePath.startsWith(`src${sep}client${sep}`);
+    || assetRelativePath.startsWith(`src${sep}client${sep}`)
+    || assetRelativePath.startsWith(`src${sep}icons${sep}`);
   if (!isAllowed || assetRelativePath.startsWith('..')) {
     response.writeHead(404).end('Not found');
     return;
@@ -87,16 +90,45 @@ const server = createServer(async (request, response) => {
   }
 });
 
-server.listen(port, host, () => console.log(`Development server: http://${host}:${port}`));
+async function listen(candidatePort) {
+  return new Promise((resolveListen, rejectListen) => {
+    const onError = error => {
+      server.off('listening', onListening);
+      rejectListen(error);
+    };
+    const onListening = () => {
+      server.off('error', onError);
+      resolveListen();
+    };
+    server.once('error', onError);
+    server.once('listening', onListening);
+    server.listen(candidatePort, host);
+  });
+}
 
-for (const directory of ['.', 'src/client', 'src/i18n']) {
+while (true) {
+  try {
+    await listen(port);
+    break;
+  } catch (error) {
+    if (error.code !== 'EADDRINUSE') throw error;
+    port += 1;
+  }
+}
+
+if (port !== requestedPort) {
+  console.warn(`Port ${requestedPort} is already in use; using ${port} instead.`);
+}
+console.log(`Development server: http://${host}:${port}`);
+
+for (const directory of ['.', 'src/client', 'src/i18n', 'src/icons']) {
   const watcher = await watch(directory);
   (async () => {
     for await (const event of watcher) {
       const file = event.filename?.toString() || '';
       const shouldBuild = directory === '.'
         ? ['app.js', 'map_template.html', 'styles.css'].includes(file)
-        : directory === 'src/i18n' || file.endsWith('.js');
+        : directory === 'src/i18n' || directory === 'src/icons' || file.endsWith('.js');
       if (!shouldBuild) continue;
       try {
         await build();

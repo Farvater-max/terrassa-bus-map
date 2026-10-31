@@ -30,7 +30,7 @@
   "schedule.summer": "Estiu",
   "popup.nextStop": "Parada següent",
   "popup.scheduledAt": "Hora prevista",
-  "popup.transfers": "Correspondències amb les línies",
+  "popup.transfers": "Correspondències amb:",
   "popup.fgc": "Tren FGC",
-  "popup.noTransfers": "No hi ha altres línies"
+  "popup.renfe": "Tren Renfe"
 }

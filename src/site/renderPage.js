@@ -25,10 +25,12 @@ export async function renderPage({
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, html);
   await rm(join(dirname(outputPath), 'src/client'), { recursive: true, force: true });
+  await rm(join(dirname(outputPath), 'src/icons'), { recursive: true, force: true });
   await Promise.all([
     copyFile(appPath, join(dirname(outputPath), 'app.js')),
     copyFile(stylesPath, join(dirname(outputPath), 'styles.css')),
     cp('src/client', join(dirname(outputPath), 'src/client'), { recursive: true }),
+    cp('src/icons', join(dirname(outputPath), 'src/icons'), { recursive: true }),
   ]);
   console.log('Page generated:', outputPath);
 }

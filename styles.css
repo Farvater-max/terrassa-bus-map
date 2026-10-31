@@ -169,7 +169,8 @@ button.primary {
 }
 
 .transfer-badge,
-.fgc-badge {
+.fgc-badge,
+.renfe-badge{
   display: inline-flex;
   min-width: 28px;
   min-height: 24px;
@@ -194,10 +195,22 @@ button.primary {
   color: #fff;
 }
 
-.fgc-badge svg {
+.fgc-badge img {
   width: 16px;
   height: 16px;
-  fill: currentColor;
+  object-fit: contain;
+}
+
+.renfe-badge {
+  gap: 4px;
+  background: #ffaa00;
+  color: #fff;
+}
+
+.renfe-badge img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
 }
 
 #zoom {
