@@ -103,15 +103,28 @@ export function routeFeedGeometry(feed, {
   for (const [sequenceIndex, [key, sequence]] of selectedSequences.entries()) {
     try {
       if (!router?.routeLeg) throw new Error('OSM router is unavailable.');
+      const gtfsShape = validExistingShape(feed, sequence, patternsBySequence.get(key));
+      const preferredCoordinates = gtfsShape
+        ? feed.shapes[gtfsShape.shapeIndex]
+        : null;
       const coordinates = [];
       const stopShapeIndexes = [0];
       for (let index = 1; index < sequence.length; index++) {
         const fromIndex = sequence[index - 1];
         const toIndex = sequence[index];
-        const legKey = `${fromIndex}>${toIndex}`;
+        const preferredShape = preferredCoordinates
+          ? preferredCoordinates.slice(
+            gtfsShape.stopShapeIndexes[index - 1],
+            gtfsShape.stopShapeIndexes[index] + 1,
+          )
+          : null;
+        const preferenceKey = preferredShape?.map(point => point.join(',')).join(';') || '';
+        const legKey = `${fromIndex}>${toIndex}|${preferenceKey}`;
         let legCoordinates = legCache.get(legKey);
         if (!legCoordinates) {
-          legCoordinates = router.routeLeg(feed.stops[fromIndex], feed.stops[toIndex]);
+          legCoordinates = router.routeLeg(feed.stops[fromIndex], feed.stops[toIndex], {
+            preferredShape,
+          });
           legCache.set(legKey, legCoordinates);
           routedLegs++;
         }
