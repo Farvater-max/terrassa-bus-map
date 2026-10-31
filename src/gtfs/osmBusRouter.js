@@ -79,15 +79,25 @@ export async function fetchOsmRoadData(feeds, {
   const query = `[out:json][timeout:60];way["highway"](${south},${west},${north},${east});out body;>;out skel qt;`;
   const url = new URL(endpoint);
   url.searchParams.set('data', query);
-  const response = await fetchImpl(url, {
-    headers: { 'user-agent': 'terrassa-bus-map/1.0 (OSM bus route geometry)' },
-    signal: AbortSignal.timeout(90000),
-  });
+  let response;
+  try {
+    response = await fetchImpl(url, {
+      headers: { 'user-agent': 'terrassa-bus-map/1.0 (OSM bus route geometry)' },
+      signal: AbortSignal.timeout(90000),
+    });
+  } catch (cause) {
+    throw new Error(`OpenStreetMap Overpass request failed: ${cause.message}`, { cause });
+  }
   if (!response.ok) {
     const detail = (await response.text()).replace(/\s+/g, ' ').slice(0, 240);
     throw new Error(`OpenStreetMap Overpass returned HTTP ${response.status}: ${detail}`);
   }
-  const data = await response.json();
+  let data;
+  try {
+    data = await response.json();
+  } catch (cause) {
+    throw new Error(`Could not parse the OpenStreetMap road extract: ${cause.message}`, { cause });
+  }
   if (!Array.isArray(data.elements)) throw new Error('OpenStreetMap returned an invalid road extract.');
   return data;
 }

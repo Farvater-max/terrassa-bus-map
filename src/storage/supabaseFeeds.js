@@ -19,22 +19,27 @@ function toDatabaseRow(feed, updatedAt) {
   };
 }
 
-export async function upsertFeeds(feeds, { url, serviceKey, updatedAt = new Date() }) {
+export async function upsertFeeds(feeds, { url, serviceKey, updatedAt = new Date(), fetchImpl = fetch }) {
   if (!url || !serviceKey) {
     throw new Error('SUPABASE_URL and SUPABASE_SERVICE_KEY are required to update schedules.');
   }
   if (!feeds.length) throw new Error('There are no feeds to write to Supabase.');
 
-  const response = await fetch(`${url.replace(/\/$/, '')}/rest/v1/feeds?on_conflict=id`, {
-    method: 'POST',
-    headers: {
-      apikey: serviceKey,
-      'Content-Type': 'application/json',
-      Prefer: 'resolution=merge-duplicates,return=minimal',
-    },
-    body: JSON.stringify(feeds.map(feed => toDatabaseRow(feed, updatedAt))),
-    signal: AbortSignal.timeout(120000),
-  });
+  let response;
+  try {
+    response = await fetchImpl(`${url.replace(/\/$/, '')}/rest/v1/feeds?on_conflict=id`, {
+      method: 'POST',
+      headers: {
+        apikey: serviceKey,
+        'Content-Type': 'application/json',
+        Prefer: 'resolution=merge-duplicates,return=minimal',
+      },
+      body: JSON.stringify(feeds.map(feed => toDatabaseRow(feed, updatedAt))),
+      signal: AbortSignal.timeout(120000),
+    });
+  } catch (cause) {
+    throw new Error(`Could not reach Supabase to write schedules: ${cause.message}`, { cause });
+  }
   if (!response.ok) {
     throw new Error(`Failed to write schedules to Supabase: HTTP ${response.status} ${await response.text()}`);
   }

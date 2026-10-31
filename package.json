@@ -6,6 +6,7 @@
   "scripts": {
     "build": "node scripts/publish-page.js --out public/index.html",
     "dev": "node scripts/dev-server.js",
+    "test": "node --test",
     "prepare:schedules": "node scripts/update-schedules.js --prepare-only",
     "persist:schedules": "node scripts/update-schedules.js --persist-only",
     "update:schedules": "node scripts/update-schedules.js"
