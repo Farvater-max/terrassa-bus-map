@@ -18,6 +18,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Run routing and schedule quality tests
+        run: npm test
       - name: Prepare GTFS feeds and OSM bus routes
         run: npm run prepare:schedules
         env:

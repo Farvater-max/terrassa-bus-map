@@ -6,8 +6,26 @@ const FALLBACK_URLS = {
   summer: 'https://opendata.terrassa.cat/dataset/b3e576c8-481f-4446-bafe-41258f7ec0ae/resource/0002bb95-34cd-4e23-95c0-9c0747d66443/download/gtfs-tmsae_estiu.zip',
 };
 
-export async function fetchGtfs(source) {
-  if (!/^https?:/.test(source)) return new Uint8Array(await readFile(source));
+export class GtfsSourceError extends Error {
+  constructor(message, { source, status, cause } = {}) {
+    super(message, { cause });
+    this.name = 'GtfsSourceError';
+    this.source = source;
+    this.status = status;
+  }
+}
+
+export async function fetchGtfs(source, { fetchImpl = fetch, readFileImpl = readFile } = {}) {
+  if (!/^https?:/.test(source)) {
+    let bytes;
+    try {
+      bytes = new Uint8Array(await readFileImpl(source));
+    } catch (cause) {
+      throw new GtfsSourceError(`Could not read GTFS file "${source}": ${cause.message}`, { source, cause });
+    }
+    if (!bytes.length) throw new GtfsSourceError(`GTFS file "${source}" is empty.`, { source });
+    return bytes;
+  }
 
   const headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
@@ -20,11 +38,26 @@ export async function fetchGtfs(source) {
     if (!apiKey) throw new Error('Set NAP_API_KEY (a GitHub Actions secret) to download GTFS from NAP.');
     headers.ApiKey = apiKey;
   }
-  const response = await fetch(url, { headers, signal: AbortSignal.timeout(120000), redirect: 'follow' });
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} (server: ${response.headers.get('server') || '?'}) for ${source}`);
+  let response;
+  try {
+    response = await fetchImpl(url, { headers, signal: AbortSignal.timeout(120000), redirect: 'follow' });
+  } catch (cause) {
+    throw new GtfsSourceError(`GTFS request failed for ${source}: ${cause.message}`, { source, cause });
   }
-  return new Uint8Array(await response.arrayBuffer());
+  if (!response.ok) {
+    throw new GtfsSourceError(
+      `GTFS request returned HTTP ${response.status} (server: ${response.headers.get('server') || '?'}).`,
+      { source, status: response.status },
+    );
+  }
+  let bytes;
+  try {
+    bytes = new Uint8Array(await response.arrayBuffer());
+  } catch (cause) {
+    throw new GtfsSourceError(`Could not read the GTFS response body from ${source}: ${cause.message}`, { source, cause });
+  }
+  if (!bytes.length) throw new GtfsSourceError(`GTFS request returned an empty file from ${source}.`, { source });
+  return bytes;
 }
 
 export async function discoverGtfsUrls() {
