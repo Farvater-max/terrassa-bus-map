@@ -1,4 +1,7 @@
 const OVERPASS_ENDPOINT = 'https://overpass-api.de/api/interpreter';
+const OVERPASS_RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
+const OVERPASS_MAX_RETRIES = 3;
+const OVERPASS_RETRY_BASE_MS = 1_000;
 const ROUTABLE_HIGHWAYS = new Set([
   'motorway', 'motorway_link', 'trunk', 'trunk_link', 'primary', 'primary_link',
   'secondary', 'secondary_link', 'tertiary', 'tertiary_link', 'unclassified',
@@ -130,29 +133,48 @@ function buildBounds(feeds, padding = 0.01) {
 export async function fetchOsmRoadData(feeds, {
   endpoint = process.env.OSM_OVERPASS_URL || OVERPASS_ENDPOINT,
   fetchImpl = fetch,
+  maxRetries = OVERPASS_MAX_RETRIES,
+  retryBaseMs = OVERPASS_RETRY_BASE_MS,
+  sleepImpl = delay => new Promise(resolve => setTimeout(resolve, delay)),
 } = {}) {
   const { south, west, north, east } = buildBounds(feeds);
   const query = `[out:json][timeout:60];way["highway"](${south},${west},${north},${east});out body;>;out skel qt;`;
   const url = new URL(endpoint);
   url.searchParams.set('data', query);
-  let response;
-  try {
-    response = await fetchImpl(url, {
-      headers: { 'user-agent': 'terrassa-bus-map/1.0 (OSM bus route geometry)' },
-      signal: AbortSignal.timeout(90000),
-    });
-  } catch (cause) {
-    throw new Error(`OpenStreetMap Overpass request failed: ${cause.message}`, { cause });
-  }
-  if (!response.ok) {
-    const detail = (await response.text()).replace(/\s+/g, ' ').slice(0, 240);
-    throw new Error(`OpenStreetMap Overpass returned HTTP ${response.status}: ${detail}`);
-  }
   let data;
-  try {
-    data = await response.json();
-  } catch (cause) {
-    throw new Error(`Could not parse the OpenStreetMap road extract: ${cause.message}`, { cause });
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    let response;
+    try {
+      response = await fetchImpl(url, {
+        headers: { 'user-agent': 'terrassa-bus-map/1.0 (OSM bus route geometry)' },
+        signal: AbortSignal.timeout(90000),
+      });
+    } catch (cause) {
+      if (attempt === maxRetries) {
+        throw new Error(`OpenStreetMap Overpass request failed after ${attempt + 1} attempts: ${cause.message}`, { cause });
+      }
+      await sleepImpl(retryBaseMs * (2 ** attempt));
+      continue;
+    }
+
+    if (!response.ok) {
+      const detail = (await response.text()).replace(/\s+/g, ' ').slice(0, 240);
+      const error = new Error(`OpenStreetMap Overpass returned HTTP ${response.status}: ${detail}`);
+      if (!OVERPASS_RETRYABLE_STATUSES.has(response.status) || attempt === maxRetries) throw error;
+      const retryAfter = Number(response.headers?.get?.('retry-after'));
+      const delay = Number.isFinite(retryAfter) && retryAfter > 0
+        ? retryAfter * 1_000
+        : retryBaseMs * (2 ** attempt);
+      await sleepImpl(delay);
+      continue;
+    }
+
+    try {
+      data = await response.json();
+    } catch (cause) {
+      throw new Error(`Could not parse the OpenStreetMap road extract: ${cause.message}`, { cause });
+    }
+    break;
   }
   if (!Array.isArray(data.elements)) throw new Error('OpenStreetMap returned an invalid road extract.');
   return data;

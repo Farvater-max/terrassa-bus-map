@@ -37,9 +37,9 @@ test('main GTFS download failure removes stale stage and stops preparation', asy
   assert.equal(fileDeps.files.has('stage.json'), false);
 });
 
-test('summer download and OSM graph errors still stage a valid main feed with route fallback', async () => {
+test('OSM graph failure with no source shapes aborts preparation without writing a stage', async () => {
   const fileDeps = memoryFileDependencies();
-  const stage = await prepareSchedules({
+  await assert.rejects(prepareSchedules({
     options: { main: 'main.zip', summer: 'summer.zip' }, runId: 'run-2', stagePath: 'stage.json',
     dependencies: {
       ...fileDeps,
@@ -55,11 +55,33 @@ test('summer download and OSM graph errors still stage a valid main feed with ro
       now: () => fixedNow,
       log: quietLog,
     },
+  }), /no OSM-routed sequences.*without source GTFS shapes/);
+  assert.equal(fileDeps.files.has('stage.json'), false);
+});
+
+test('summer download failure does not prevent a successfully routed main feed from staging', async () => {
+  const fileDeps = memoryFileDependencies();
+  const stage = await prepareSchedules({
+    options: { main: 'main.zip', summer: 'summer.zip' }, runId: 'run-2b', stagePath: 'stage.json',
+    dependencies: {
+      ...fileDeps,
+      fetchGtfs: async source => {
+        if (source === 'summer.zip') throw new Error('summer unavailable');
+        return new Uint8Array([1]);
+      },
+      readShapes: () => [],
+      transformGtfs: (_archive, id) => makeFeed(id),
+      createOsmBusRouterForFeeds: async () => ({ routeLeg: () => [[41, 2], [41, 2.001]], stats: {} }),
+      routeFeedGeometry,
+      validatePreparedFeeds,
+      now: () => fixedNow,
+      log: quietLog,
+    },
   });
   assert.deepEqual(stage.feeds.map(feed => feed.id), ['main']);
-  assert.equal(stage.reports[0].fallbackFromStops, 1);
+  assert.equal(stage.reports[0].routed, 1);
   assert.ok(fileDeps.files.has('stage.json'));
-  assert.equal(JSON.parse(fileDeps.files.get('stage.json')).runId, 'run-2');
+  assert.equal(JSON.parse(fileDeps.files.get('stage.json')).runId, 'run-2b');
 });
 
 test('summer transform failure leaves summer out of the stage while preserving main', async () => {
@@ -74,7 +96,7 @@ test('summer transform failure leaves summer out of the stage while preserving m
         if (id === 'summer') throw new Error('invalid summer feed');
         return makeFeed(id);
       },
-      createOsmBusRouterForFeeds: async () => null,
+      createOsmBusRouterForFeeds: async () => ({ routeLeg: () => [[41, 2], [41, 2.001]], stats: {} }),
       routeFeedGeometry,
       validatePreparedFeeds,
       now: () => fixedNow,
@@ -82,6 +104,64 @@ test('summer transform failure leaves summer out of the stage while preserving m
     },
   });
   assert.deepEqual(stage.feeds.map(feed => feed.id), ['main']);
+});
+
+test('expired main GTFS feed is rejected before OSM routing or stage creation', async () => {
+  const fileDeps = memoryFileDependencies();
+  await assert.rejects(prepareSchedules({
+    options: { main: 'main.zip', noSummer: true }, runId: 'run-expired', stagePath: 'stage.json',
+    dependencies: {
+      ...fileDeps,
+      fetchGtfs: async () => new Uint8Array([1]),
+      readShapes: () => [],
+      transformGtfs: () => ({
+        ...makeFeed(), cal: [['service', '1111111', '20250101', '20260511']],
+      }),
+      createOsmBusRouterForFeeds: async () => { throw new Error('must not be called'); },
+      now: () => fixedNow,
+      log: quietLog,
+    },
+  }), /main archive has expired.*ALLOW_EXPIRED_MAIN=true/);
+  assert.equal(fileDeps.files.has('stage.json'), false);
+});
+
+test('explicit approval allows routing and staging the current expired main archive', async () => {
+  const fileDeps = memoryFileDependencies();
+  const stage = await prepareSchedules({
+    options: { main: 'main.zip', noSummer: true, allowExpiredMain: true },
+    runId: 'run-expired-approved', stagePath: 'stage.json',
+    dependencies: {
+      ...fileDeps,
+      fetchGtfs: async () => new Uint8Array([1]),
+      readShapes: () => [],
+      transformGtfs: () => ({ ...makeFeed(), cal: [['service', '1111111', '20250101', '20260511']] }),
+      createOsmBusRouterForFeeds: async () => ({ routeLeg: () => [[41, 2], [41, 2.001]], stats: {} }),
+      routeFeedGeometry,
+      validatePreparedFeeds,
+      now: () => fixedNow,
+      log: quietLog,
+    },
+  });
+  assert.equal(stage.feeds[0].cal[0][3], '20260511');
+  assert.equal(stage.reports[0].routed, 1);
+  assert.ok(fileDeps.files.has('stage.json'));
+});
+
+test('main GTFS feed without a calendar end date is rejected', async () => {
+  const fileDeps = memoryFileDependencies();
+  await assert.rejects(prepareSchedules({
+    options: { main: 'main.zip', noSummer: true }, runId: 'run-unknown-validity', stagePath: 'stage.json',
+    dependencies: {
+      ...fileDeps,
+      fetchGtfs: async () => new Uint8Array([1]),
+      readShapes: () => [],
+      transformGtfs: () => ({ ...makeFeed(), cal: [] }),
+      createOsmBusRouterForFeeds: async () => { throw new Error('must not be called'); },
+      now: () => fixedNow,
+      log: quietLog,
+    },
+  }), /main archive has no calendar end date/);
+  assert.equal(fileDeps.files.has('stage.json'), false);
 });
 
 test('persistSchedules validates stage before making a database request', async () => {

@@ -10,6 +10,7 @@ function parseArgs(argv) {
     const arg = argv[index];
     if (arg === '--no-summer') options.noSummer = true;
     else if (arg === '--borrow-shapes') options.borrowShapes = true;
+    else if (arg === '--allow-expired-main') options.allowExpiredMain = true;
     else if (arg === '--prepare-only') options.prepareOnly = true;
     else if (arg === '--persist-only') options.persistOnly = true;
     else if (arg.startsWith('--')) options[arg.slice(2)] = argv[++index];

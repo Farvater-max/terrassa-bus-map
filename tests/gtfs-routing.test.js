@@ -172,6 +172,7 @@ test('OSM data download errors are contextual and preserve their cause', async (
   await assert.rejects(
     fetchOsmRoadData([{ stops: [['A', 41, 2]] }], {
       endpoint: 'https://overpass.example/api',
+      maxRetries: 0,
       fetchImpl: async () => { throw new Error('network offline'); },
     }),
     error => /Overpass request failed/.test(error.message) && error.cause.message === 'network offline',
@@ -183,4 +184,45 @@ test('OSM data download errors are contextual and preserve their cause', async (
     }),
     /Could not parse the OpenStreetMap road extract/,
   );
+});
+
+test('Overpass retries temporary capacity errors with exponential backoff', async () => {
+  const { fetchOsmRoadData } = await import('../src/gtfs/osmBusRouter.js');
+  let calls = 0;
+  const delays = [];
+  const data = await fetchOsmRoadData([{ stops: [['A', 41, 2]] }], {
+    endpoint: 'https://overpass.example/api',
+    maxRetries: 2,
+    retryBaseMs: 25,
+    sleepImpl: async delay => delays.push(delay),
+    fetchImpl: async () => {
+      calls++;
+      if (calls === 1) {
+        return {
+          ok: false,
+          status: 502,
+          headers: { get: () => null },
+          text: async () => 'Overpass queue full',
+        };
+      }
+      return { ok: true, json: async () => ({ elements: [] }) };
+    },
+  });
+  assert.deepEqual(data, { elements: [] });
+  assert.equal(calls, 2);
+  assert.deepEqual(delays, [25]);
+});
+
+test('Overpass does not retry permanent client errors', async () => {
+  const { fetchOsmRoadData } = await import('../src/gtfs/osmBusRouter.js');
+  let calls = 0;
+  await assert.rejects(fetchOsmRoadData([{ stops: [['A', 41, 2]] }], {
+    endpoint: 'https://overpass.example/api',
+    sleepImpl: async () => assert.fail('permanent errors should not be retried'),
+    fetchImpl: async () => {
+      calls++;
+      return { ok: false, status: 403, headers: { get: () => null }, text: async () => 'denied' };
+    },
+  }), /Overpass returned HTTP 403: denied/);
+  assert.equal(calls, 1);
 });

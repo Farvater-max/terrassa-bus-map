@@ -3,6 +3,12 @@ on:
   schedule:
     - cron: '0 5 * * 1'
   workflow_dispatch:
+    inputs:
+      allow_expired_main:
+        description: Allow the current expired GTFS archive for a manual route repair
+        type: boolean
+        required: false
+        default: true
 permissions:
   contents: read
 concurrency:
@@ -24,6 +30,7 @@ jobs:
         run: npm run prepare:schedules
         env:
           NAP_API_KEY: ${{ secrets.NAP_API_KEY }}
+          ALLOW_EXPIRED_MAIN: ${{ inputs.allow_expired_main }}
           SCHEDULE_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
       - name: Persist validated prepared schedules
         run: npm run persist:schedules

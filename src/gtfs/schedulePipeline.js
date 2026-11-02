@@ -78,12 +78,19 @@ export async function prepareSchedules({ options, runId, stagePath, dependencies
       continue;
     }
     const endDate = feed.cal.map(calendar => calendar[3]).sort().at(-1) || '';
+    if (id === 'main' && !endDate) {
+      throw new Error('The main archive has no calendar end date; refusing to stage or persist schedules with unknown validity.');
+    }
     if (id === 'summer' && endDate < today) {
       log.warn(`The summer archive is outdated (valid through ${endDate}) and will be skipped.`);
       continue;
     }
     if (id === 'main' && endDate < today) {
-      log.warn(`The main archive has expired (valid through ${endDate}); the map will use its weekday schedule.`);
+      const allowExpiredMain = options.allowExpiredMain ?? process.env.ALLOW_EXPIRED_MAIN === 'true';
+      if (!allowExpiredMain) {
+        throw new Error(`The main archive has expired (valid through ${endDate}); set ALLOW_EXPIRED_MAIN=true to explicitly allow this archive.`);
+      }
+      log.warn(`The main archive has expired (valid through ${endDate}); continuing because ALLOW_EXPIRED_MAIN is enabled.`);
     }
     feeds.push(feed);
     log.log(`${id}: ${feed.trips.length} trips`);
