@@ -46,6 +46,11 @@ export function validatePreparedFeeds(feeds, reports) {
       || report.fallbackFromGtfsKeys.some(key => !sequenceKeys.has(key))) {
       throw new Error(`Feed ${feed.id} does not have complete routed or fallback coverage.`);
     }
+    if (report.routed === 0 && report.fallbackFromStops > 0) {
+      throw new Error(
+        `Feed ${feed.id} has no OSM-routed sequences and ${report.fallbackFromStops} sequences without source GTFS shapes; refusing to stage stop-only geometry.`,
+      );
+    }
     const originalShapeFallbacks = new Set(report.fallbackFromGtfsKeys);
 
     for (const [patternIndex, pattern] of feed.pats.entries()) {

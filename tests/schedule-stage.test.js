@@ -3,22 +3,31 @@ import assert from 'node:assert/strict';
 import { routeFeedGeometry } from '../src/gtfs/routing.js';
 import { validatePreparedFeeds, validatePreparedStage } from '../src/gtfs/scheduleStage.js';
 
-function preparedFixture() {
+function preparedFixture(withShape = true) {
   const feed = {
     id: 'main', routes: [], stops: [['A', 41, 2], ['B', 41, 2.001]],
-    pats: [[[0, 1], 0, -1, []]], shapes: [], trips: [], cal: [], cd: [],
+    pats: [[[0, 1], 0, withShape ? 0 : -1, withShape ? [0, 1] : []]],
+    shapes: withShape ? [[[41, 2], [41, 2.001]]] : [], trips: [], cal: [], cd: [],
   };
   const report = { id: feed.id, ...routeFeedGeometry(feed, { router: null, log: { log() {}, warn() {} } }) };
   return { feed, report };
 }
 
-test('prepared stage accepts complete fallback coverage and matching run id', () => {
+test('prepared stage accepts original GTFS shape fallback and matching run id', () => {
   const { feed, report } = preparedFixture();
   const stage = {
     formatVersion: 1, runId: 'run-1', preparedAt: new Date().toISOString(),
     router: 'osm-bus-dijkstra', feeds: [feed], reports: [report],
   };
   assert.equal(validatePreparedStage(stage, 'run-1'), stage);
+});
+
+test('prepared stage rejects stop-only fallback when no route was optimized', () => {
+  const { feed, report } = preparedFixture(false);
+  assert.throws(
+    () => validatePreparedFeeds([feed], [report]),
+    /no OSM-routed sequences.*without source GTFS shapes/,
+  );
 });
 
 test('prepared stage rejects missing route geometry and mismatched run id', () => {
