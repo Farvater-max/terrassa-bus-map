@@ -1,8 +1,5 @@
 import { createHash } from 'node:crypto';
-
-const toISODate = value => value
-  ? `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`
-  : null;
+import { toISODate } from '../utils/date.js';
 
 function toDatabaseRow(feed, updatedAt) {
   const starts = feed.cal.map(calendar => calendar[2]).filter(Boolean).sort();

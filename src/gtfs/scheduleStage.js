@@ -1,13 +1,6 @@
-const STAGE_VERSION = 1;
+import { distanceMeters } from '../utils/geo.js';
 
-function distanceMeters(from, to) {
-  const radians = value => value * Math.PI / 180;
-  const latitudeDelta = radians(to[0] - from[0]);
-  const longitudeDelta = radians(to[1] - from[1]);
-  const haversine = Math.sin(latitudeDelta / 2) ** 2
-    + Math.cos(radians(from[0])) * Math.cos(radians(to[0])) * Math.sin(longitudeDelta / 2) ** 2;
-  return 12_742_000 * Math.asin(Math.sqrt(haversine));
-}
+const STAGE_VERSION = 1;
 
 export function validatePreparedFeeds(feeds, reports) {
   if (!Array.isArray(feeds) || !feeds.length) throw new Error('The prepared file contains no feeds.');

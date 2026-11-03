@@ -1,3 +1,5 @@
+import { distanceMeters, sameCoordinate } from '../utils/geo.js';
+
 const OVERPASS_ENDPOINT = 'https://overpass-api.de/api/interpreter';
 const OVERPASS_RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
 const OVERPASS_MAX_RETRIES = 3;
@@ -35,14 +37,6 @@ function radians(value) {
   return value * Math.PI / 180;
 }
 
-function distanceMeters(a, b) {
-  const latitudeDelta = radians(b[0] - a[0]);
-  const longitudeDelta = radians(b[1] - a[1]);
-  const haversine = Math.sin(latitudeDelta / 2) ** 2
-    + Math.cos(radians(a[0])) * Math.cos(radians(b[0])) * Math.sin(longitudeDelta / 2) ** 2;
-  return 12_742_000 * Math.asin(Math.sqrt(haversine));
-}
-
 function distancePointToSegmentMeters(point, start, end) {
   const cosine = Math.cos(radians(point[0]));
   const startX = (start[1] - point[1]) * cosine;
@@ -77,10 +71,6 @@ function segmentWithinCorridor(segment, preferredShape, corridorMeters) {
     if (distanceToPolylineMeters(point, preferredShape) > corridorMeters) return false;
   }
   return true;
-}
-
-function sameCoordinate(a, b) {
-  return Math.abs(a[0] - b[0]) < 1e-7 && Math.abs(a[1] - b[1]) < 1e-7;
 }
 
 function isAllowedAccess(value) {
