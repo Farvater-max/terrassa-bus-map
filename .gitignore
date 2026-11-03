@@ -2,3 +2,4 @@
 /debug/
 /.dev/
 /.staging/
+/node_modules/
