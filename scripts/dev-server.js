@@ -39,6 +39,7 @@ async function build() {
     outputPath,
     supabaseUrl: process.env.SUPABASE_URL,
     anonKey: process.env.SUPABASE_ANON_KEY,
+    arcgisApiKey: process.env.ARCGIS_API_KEY,
   }));
   return building;
 }
