@@ -1,15 +1,4 @@
-function sameCoordinate(a, b) {
-  return Math.abs(a[0] - b[0]) < 1e-7 && Math.abs(a[1] - b[1]) < 1e-7;
-}
-
-function distanceMeters(a, b) {
-  const radians = value => value * Math.PI / 180;
-  const latitudeDelta = radians(b[0] - a[0]);
-  const longitudeDelta = radians(b[1] - a[1]);
-  const haversine = Math.sin(latitudeDelta / 2) ** 2
-    + Math.cos(radians(a[0])) * Math.cos(radians(b[0])) * Math.sin(longitudeDelta / 2) ** 2;
-  return 12_742_000 * Math.asin(Math.sqrt(haversine));
-}
+import { distanceMeters, sameCoordinate } from '../utils/geo.js';
 
 function validateRoutedShape(feed, sequence, coordinates, stopShapeIndexes) {
   if (coordinates.length < sequence.length || stopShapeIndexes.length !== sequence.length) {

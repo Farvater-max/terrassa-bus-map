@@ -11,5 +11,10 @@
     "persist:schedules": "node scripts/update-schedules.js --persist-only",
     "update:schedules": "node scripts/update-schedules.js"
   },
-  "dependencies": { "fflate": "^0.8.2" }
+  "dependencies": {
+    "fflate": "^0.8.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1"
+  }
 }
