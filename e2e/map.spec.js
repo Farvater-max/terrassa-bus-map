@@ -24,6 +24,7 @@ const mapLibreStub = `
         this.container = document.getElementById(options.container);
         this.handlers = new Map();
         this.zoom = options.zoom;
+        this.touchZoomRotate = { disableRotation() {} };
         window.__testMap = this;
         this.container.addEventListener('click', event => {
           const bounds = this.container.getBoundingClientRect();
@@ -44,6 +45,7 @@ const mapLibreStub = `
         };
       }
       getZoom() { return this.zoom; }
+      isStyleLoaded() { return true; }
       setStyle() {}
       zoomTo(zoom) { this.zoom = zoom; this.handlers.get('move')?.(); }
     },
