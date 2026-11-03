@@ -36,6 +36,7 @@ let needsRedraw = true;
 const mapView = createMapView({
   canvas: query('#cv'),
   translate: t,
+  apiKey: window.ARCGIS_API_KEY,
   onMapChange: () => { needsRedraw = true; },
   onSelect: selection => {
     if (selection?.stopIndex == null) selectedTrip = selection?.trip || null;
