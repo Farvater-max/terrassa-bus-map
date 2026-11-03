@@ -27,6 +27,7 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL || 'https://example.supabase.co' }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY || 'pr-validation-only' }}
+          ARCGIS_API_KEY: ${{ secrets.ARCGIS_API_KEY || vars.ARCGIS_API_KEY }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: public
