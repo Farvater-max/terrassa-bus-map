@@ -1,13 +1,14 @@
 import { busPosition, escapeHTML, formatTime, pointToLongitudeLatitude, tripPath } from './geometry.js';
+import { LANDMARKS } from './landmarks.js';
 
 const ARCGIS_API_KEY = globalThis.ARCGIS_API_KEY ?? '';
 const BASEMAP_LANGUAGE = 'es';
 
 const MAX_ZOOM = 19;
-const ARROW_BASE_ZOOM = MAX_ZOOM; // на этом зуме показаны все стрелки
-const ARROW_BASE_PX = 80;         // расстояние между стрелками на экране на ARROW_BASE_ZOOM
-const ARROW_TARGET_PX = 80;       // минимальное расстояние между стрелками на других зумах
-const ARROW_MAX_COUNT = 20000;    // защита от слишком длинных путей
+const ARROW_BASE_ZOOM = MAX_ZOOM;
+const ARROW_BASE_PX = 130;
+const ARROW_TARGET_PX = 130;
+const ARROW_MAX_COUNT = 20000;
 
 function vectorStyleUrl(style, apiKey) {
   const styleId = style === 'dark-gray' ? 'dark-gray' : 'light-gray';
@@ -38,8 +39,6 @@ function basemapStyle(style, apiKey) {
   return apiKey ? vectorStyleUrl(style, apiKey) : rasterFallbackStyle(style);
 }
 
-/* ---------- Вспомогательная отрисовка ---------- */
-
 function strokePath(context, points, width, color, alpha = 1) {
   if (!points.length) return;
   context.beginPath();
@@ -51,8 +50,6 @@ function strokePath(context, points, width, color, alpha = 1) {
   context.globalAlpha = 1;
 }
 
-// Считаем позиции стрелок один раз на рейс, в исходных координатах маршрута.
-// Шаг выбирается так, чтобы на ARROW_BASE_ZOOM между стрелками было ARROW_BASE_PX пикселей.
 function buildArrows(path, project, zoom) {
   if (path.length < 2) return [];
 
@@ -105,7 +102,7 @@ function drawArrows(context, project, arrows, zoom) {
   for (const arrow of arrows) {
     let alpha;
     if (arrow.level >= n) alpha = 1;
-    else if (arrow.level === n - 1) alpha = n - f; // плавно появляется/гаснет между уровнями
+    else if (arrow.level === n - 1) alpha = n - f;
     else continue;
     if (alpha <= 0.02) continue;
 
@@ -193,6 +190,19 @@ export function createMapView({ canvas, onSelect, onMapChange, translate, apiKey
   let stopHits = [];
   let warningVisible = false;
   let arrowCache = { key: null, size: 0, arrows: [] };
+  let landmarkHits = [];
+  const landmarkImages = new Map();
+
+  LANDMARKS.forEach(landmark => {
+    Object.entries(landmark.icons).forEach(([styleName, src]) => {
+      const image = new Image();
+      image.onload = () => {
+        landmarkImages.set(`${landmark.id}:${styleName}`, image);
+        onMapChange();
+      };
+      image.src = src;
+    });
+  });
 
   const isDark = () => style === 'dark-gray';
 
@@ -203,7 +213,7 @@ export function createMapView({ canvas, onSelect, onMapChange, translate, apiKey
     zoom: 13.5,
     minZoom: 11,
     maxZoom: MAX_ZOOM,
-    maxBounds: [[1.8, 41.4], [2.25, 41.72]], // подправьте под границы вашего района
+    maxBounds: [[1.8, 41.4], [2.25, 41.72]],
     attributionControl: false,
     dragRotate: false,
     pitchWithRotate: false,
@@ -242,21 +252,18 @@ export function createMapView({ canvas, onSelect, onMapChange, translate, apiKey
     const route = state.routes[trip.routeIndex];
     const path = tripPath(trip, state.stops, state.shapes);
 
-    // Линия маршрута: обводка + цветная линия, толщина зависит от зума
     const lineWidth = Math.max(3, Math.min(8, (state.zoom - 10) * 1.1));
     if (path.length) {
       const projected = path.map(point => project(point.x, point.y));
       strokePath(context, projected, lineWidth + 3, dark ? 'rgba(0,0,0,.65)' : 'rgba(255,255,255,.95)');
       strokePath(context, projected, lineWidth, route.lineColor, 0.95);
 
-      // Стрелки считаем один раз на рейс и дальше только проецируем
       if (arrowCache.key !== trip.id || arrowCache.size !== path.length) {
         arrowCache = { key: trip.id, size: path.length, arrows: buildArrows(path, project, state.zoom) };
       }
       if (state.zoom >= 12.5) drawArrows(context, project, arrowCache.arrows, state.zoom);
     }
 
-    // Остановки
     const radiusBase = state.zoom < 13 ? 3 : state.zoom < 15 ? 4.5 : 6;
     const labelRects = [];
     const lastIndex = trip.pattern.stopIndexes.length - 1;
@@ -285,7 +292,6 @@ export function createMapView({ canvas, onSelect, onMapChange, translate, apiKey
       context.strokeStyle = selected ? '#ffd166' : terminal ? route.color : '#fff';
       context.stroke();
 
-      // Подписи: конечные и выбранная всегда, остальные с зума 14.5 и без наложений
       if (!(terminal || selected || state.zoom >= 14.5)) return;
       const rect = { x: x + 9, y: y - 8, w: context.measureText(stop.name).width, h: 16 };
       const overlaps = labelRects.some(other => (
@@ -325,6 +331,24 @@ export function createMapView({ canvas, onSelect, onMapChange, translate, apiKey
       drawBusMarker(context, x, y, route, state.zoom);
     }
     return visibleBuses;
+  }
+
+  function drawLandmarks(context, zoom) {
+    landmarkHits = [];
+    if (zoom < 13) return;
+    const baseSize = 36 + 22 * Math.min(1, Math.max(0, (zoom - 13) / 2));
+    const width = context.canvas.clientWidth;
+    const height = context.canvas.clientHeight;
+
+    for (const landmark of LANDMARKS) {
+      const image = landmarkImages.get(`${landmark.id}:${style}`);
+      if (!image) continue;
+      const size = baseSize * (landmark.scale ?? 1);
+      const { x, y } = map.project([landmark.lon, landmark.lat]);
+      if (x < -size || y < -size || x > width + size || y > height + size) continue;
+      context.drawImage(image, x - size / 2, y - size * 0.86, size, size);
+      landmarkHits.push({ x, y: y - size * 0.4, radius: size * 0.45, landmark });
+    }
   }
 
   function drawPopup(project, state) {
@@ -381,7 +405,7 @@ export function createMapView({ canvas, onSelect, onMapChange, translate, apiKey
       html = `<b>${escapeHTML(stop.name)}</b>`;
       if (otherRoutes.length > 0 || fgc || renfe) {
         html += `<br>${escapeHTML(translate('popup.transfers'))} `
-          + `<span class="transfer-badges">${lineIcons}${fgcIcon}${renfeIcon}</span>`;
+          + `<br><span class="transfer-badges">${lineIcons}${fgcIcon}${renfeIcon}</span>`;
       }
     }
 
@@ -414,6 +438,7 @@ export function createMapView({ canvas, onSelect, onMapChange, translate, apiKey
     const drawState = { ...state, zoom: map.getZoom() };
     context.lineJoin = 'round';
     context.lineCap = 'round';
+    drawLandmarks(context, drawState.zoom);
     drawBusRoutes(context, project, drawState);
     const visibleBuses = drawBuses(context, project, drawState);
     document.querySelector('#clock').textContent = formatTime(state.time);

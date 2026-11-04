@@ -1,0 +1,26 @@
+export const LANDMARKS = [
+  {
+    id: '1',
+    name: 'La Masia Freixa',
+    description: 'un edificio modernista',
+    lon: 2.0043237,
+    lat: 41.5625222,
+    scale: 1.3,
+    icons: {
+          'light-gray': './src/icons/landmarks/masia_freixa_poi.png',
+          'dark-gray': './src/icons/landmarks/masia_freixa_poi_dark.png',
+        },
+  },
+  {
+    id: '2',
+    name: 'La Seu d’Ègara',
+    description: 'monumento histórico',
+    lon: 2.018426,
+    lat: 41.566897,
+    scale: 1.3,
+    icons: {
+          'light-gray': './src/icons/landmarks/egara_poi_light.png',
+          'dark-gray': './src/icons/landmarks/egara_poi_dark.png',
+        },
+  },
+];
