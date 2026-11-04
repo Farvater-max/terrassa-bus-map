@@ -17,6 +17,7 @@ renderPage({
   outputPath: options.out,
   supabaseUrl: process.env.SUPABASE_URL,
   anonKey: process.env.SUPABASE_ANON_KEY,
+  apiKey: process.env.ARCGIS_API_KEY,
 }).catch(error => {
   console.error(error);
   process.exitCode = 1;

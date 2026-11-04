@@ -9,7 +9,7 @@ export async function renderPage({
   outputPath,
   supabaseUrl,
   anonKey,
-  arcgisApiKey = '',
+  apiKey = '',
 }) {
   if (!supabaseUrl || !anonKey) {
     throw new Error('SUPABASE_URL and SUPABASE_ANON_KEY are required to publish the page.');
@@ -23,7 +23,7 @@ export async function renderPage({
     .replace('__TRANSLATIONS__', () => JSON.stringify({ es: spanish, ca: catalan }))
     .replace('__SUPABASE_URL__', () => JSON.stringify(supabaseUrl))
     .replace('__SUPABASE_ANON_KEY__', () => JSON.stringify(anonKey))
-    .replace('__ARCGIS_API_KEY__', () => JSON.stringify(arcgisApiKey));
+    .replace('__ARCGIS_API_KEY__', () => JSON.stringify(apiKey));
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, html);
   await rm(join(dirname(outputPath), 'src/client'), { recursive: true, force: true });
