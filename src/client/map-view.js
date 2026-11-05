@@ -1,4 +1,4 @@
-import { busPosition, escapeHTML, formatTime, pointToLongitudeLatitude, tripPath } from './geometry.js';
+import { busPosition, escapeHTML, formatTime, isSameDirection, pointToLongitudeLatitude, tripPath } from './geometry.js';
 import { LANDMARKS } from './landmarks.js';
 
 const ARCGIS_API_KEY = globalThis.ARCGIS_API_KEY ?? '';
@@ -185,6 +185,45 @@ function railConnections(stopName) {
 
 export function createMapView({ canvas, onSelect, onMapChange, translate, apiKey = ARCGIS_API_KEY }) {
   const context = canvas.getContext('2d');
+  const mobileQuery = matchMedia('(max-width: 640px)');
+  const sheet = document.querySelector('#sheet');
+  const sheetField = id => sheet.querySelector(id);
+  const sheetBadge = sheetField('#sheet-badge');
+  const sheetTitle = sheetField('#sheet-title');
+  const sheetDirection = sheetField('#sheet-direction');
+  const sheetStop = sheetField('#sheet-stop');
+  const sheetArrival = sheetField('#sheet-arrival');
+  const sheetEta = sheetField('#sheet-eta');
+  const setText = (element, value) => {
+    if (element.textContent !== value) element.textContent = value;
+  };
+
+  sheetField('#sheet-close').addEventListener('click', () => onSelect(null));
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  let sheetOpen = false;
+
+  function showSheet() {
+    if (sheetOpen) return;
+    sheetOpen = true;
+    sheet.classList.remove('closing');
+    sheet.hidden = false;
+  }
+
+  function hideSheet() {
+    if (!sheetOpen) return;
+    sheetOpen = false;
+    if (reduceMotion.matches || sheet.offsetParent === null) {
+      sheet.hidden = true;
+      return;
+    }
+    sheet.classList.add('closing');
+  }
+
+  sheet.addEventListener('animationend', event => {
+    if (event.animationName !== 'sheet-out') return;
+    sheet.classList.remove('closing');
+    sheet.hidden = true;
+  });
   let style = 'dark-gray';
   let busHits = [];
   let stopHits = [];
@@ -317,7 +356,7 @@ export function createMapView({ canvas, onSelect, onMapChange, translate, apiKey
     const height = context.canvas.clientHeight;
 
     for (const trip of state.day) {
-      if (state.selectedTrip && trip.id !== state.selectedTrip.id) continue;
+      if (state.selectedTrip && !isSameDirection(trip, state.selectedTrip)) continue;
       if (state.hiddenRoutes.has(trip.routeIndex) || state.time < trip.startTime || state.time > trip.endTime) continue;
       const position = busPosition(trip, state.time, state.stops, state.shapes);
       if (!position) continue;
@@ -351,9 +390,39 @@ export function createMapView({ canvas, onSelect, onMapChange, translate, apiKey
     }
   }
 
+  function updateSheet(trip, state) {
+    const visible = Boolean(trip) && state.time >= trip.startTime && state.time <= trip.endTime;
+      if (!visible) {
+        hideSheet();
+        return;
+      }
+      showSheet();
+
+    const route = state.routes[trip.routeIndex];
+    const { stopIndexes, times } = trip.pattern;
+    const relativeTime = state.time - trip.startTime;
+    let index = times.findIndex(time => time > relativeTime);
+    if (index < 0) index = stopIndexes.length - 1;
+
+    const arrival = trip.startTime + times[index];
+    const minutes = Math.ceil((arrival - state.time) / 60);
+
+    sheet.style.setProperty('--route-color', route.color);
+    sheet.style.setProperty('--route-text', route.text);
+    setText(sheetBadge, route.short);
+    setText(sheetTitle, translate('sheet.bus', { route: route.short }));
+    setText(sheetDirection, `${state.stops[stopIndexes[0]].name} ▸ ${trip.headsign}`);
+    setText(sheetStop, state.stops[stopIndexes[index]].name);
+    setText(sheetArrival, formatTime(arrival).slice(0, 5));
+    setText(sheetEta, minutes > 0 ? translate('sheet.inMinutes', { minutes }) : translate('sheet.arriving'));
+  }
+
   function drawPopup(project, state) {
     const popup = document.querySelector('#pop');
-    if (!state.selection) {
+    const selectedBus = state.selection?.trip;
+    const useSheet = mobileQuery.matches && Boolean(selectedBus);
+    updateSheet(useSheet ? selectedBus : null, state);
+    if (!state.selection || useSheet) {
       popup.hidden = true;
       return;
     }

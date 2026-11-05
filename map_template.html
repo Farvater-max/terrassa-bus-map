@@ -28,20 +28,7 @@
         <span data-i18n="control.schedule"></span>
         <select id="set" data-testid="schedule-select"></select>
       </label>
-      <label>
-        <span data-i18n="control.mapStyle"></span>
-        <select id="style" data-testid="map-style">
-          <option value="dark-gray" data-i18n="map.dark"></option>
-          <option value="light-gray" data-i18n="map.light"></option>
-        </select>
-      </label>
-      <label>
-        <span data-i18n="control.language"></span>
-        <select id="language" data-testid="language-select">
-          <option value="es">Español</option>
-          <option value="ca">Català</option>
-        </select>
-      </label>
+
     </header>
 
     <div id="bar">
@@ -57,9 +44,35 @@
       <div id="map" data-testid="map-surface" data-i18n-aria="map.aria"></div>
       <canvas id="cv" aria-hidden="true"></canvas>
       <div id="pop" data-testid="map-popup" hidden></div>
+      <section id="sheet" data-testid="bus-sheet" role="dialog" aria-live="polite" hidden>
+          <button id="sheet-close" type="button" data-i18n-aria="sheet.close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>
+          </button>
+        <div class="sheet-title">
+          <span id="sheet-badge" class="transfer-badge"></span>
+          <h2 id="sheet-title"></h2>
+        </div>
+        <div id="sheet-direction"></div>
+        <div class="sheet-stop">
+          <span class="sheet-dot"></span>
+          <div class="sheet-stop-text">
+            <small data-i18n="popup.nextStop"></small>
+            <span id="sheet-stop"></span>
+          </div>
+          <div class="sheet-time">
+            <b id="sheet-arrival"></b>
+            <small id="sheet-eta"></small>
+          </div>
+        </div>
+      </section>
       <div id="zoom">
-        <button id="zi" data-i18n-aria="control.zoomIn">+</button>
-        <button id="zo" data-i18n-aria="control.zoomOut">−</button>
+        <div id="language" class="segmented" role="group" data-i18n-aria="control.language" data-testid="language-select">
+          <button type="button" data-lang="es" lang="es">ES</button>
+          <button type="button" data-lang="ca" lang="ca">CA</button>
+        </div>
+        <button id="theme" type="button" data-testid="map-style"></button>
+        <button id="zi" type="button" data-i18n-aria="control.zoomIn">+</button>
+        <button id="zo" type="button" data-i18n-aria="control.zoomOut">−</button>
       </div>
       <div id="warn" data-testid="map-warning" role="status" hidden></div>
       <div id="attr"></div>

@@ -17,7 +17,9 @@ export function createLocalization(translations) {
     document.querySelectorAll('[data-i18n-aria]').forEach(element => {
       element.setAttribute('aria-label', translate(element.dataset.i18nAria));
     });
-    document.querySelector('#language').value = language;
+    document.querySelectorAll('[data-lang]').forEach(button => {
+      button.setAttribute('aria-pressed', String(button.dataset.lang === language));
+    });
   }
 
   function setLanguage(nextLanguage) {

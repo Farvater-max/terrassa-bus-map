@@ -32,6 +32,21 @@ let playing = true;
 let speed = 1;
 let lastFrameTime = performance.now();
 let needsRedraw = true;
+let mapStyle = 'dark-gray';
+
+const THEME_ICONS = {
+  sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>',
+  moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
+};
+
+function updateThemeButton() {
+  const dark = mapStyle === 'dark-gray';
+  const button = query('#theme');
+  const label = t(dark ? 'control.switchToLight' : 'control.switchToDark');
+  button.innerHTML = dark ? THEME_ICONS.sun : THEME_ICONS.moon; // показываем, на что переключимся
+  button.setAttribute('aria-label', label);
+  button.title = label;
+}
 
 const mapView = createMapView({
   canvas: query('#cv'),
@@ -153,6 +168,7 @@ function animationFrame(now) {
 
 function updateLanguage(nextLanguage) {
   localization.setLanguage(nextLanguage);
+  updateThemeButton();
   createScheduleOptions(query('#set').value);
   query('#play').textContent = t(playing ? 'control.pause' : 'control.play');
   mapView.setLanguage();
@@ -170,7 +186,11 @@ createScheduleOptions('auto');
 query('#date').addEventListener('change', buildDay);
 query('#set').addEventListener('change', buildDay);
 query('#speed').addEventListener('change', event => { speed = Number(event.target.value); });
-query('#style').addEventListener('change', event => mapView.setStyle(event.target.value));
+query('#theme').addEventListener('click', () => {
+  mapStyle = mapStyle === 'dark-gray' ? 'light-gray' : 'dark-gray';
+  mapView.setStyle(mapStyle);
+  updateThemeButton();
+});
 query('#play').addEventListener('click', event => {
   playing = !playing;
   event.currentTarget.textContent = t(playing ? 'control.pause' : 'control.play');
@@ -180,11 +200,15 @@ query('#slider').addEventListener('input', event => {
   simulationTime = Number(event.target.value);
   needsRedraw = true;
 });
-query('#language').addEventListener('change', event => updateLanguage(event.target.value));
+query('#language').addEventListener('click', event => {
+  const button = event.target.closest('[data-lang]');
+  if (button) updateLanguage(button.dataset.lang);
+});
 query('#zi').addEventListener('click', () => mapView.zoomBy(1));
 query('#zo').addEventListener('click', () => mapView.zoomBy(-1));
 
 setCurrentTime();
 buildDay();
-mapView.setStyle(query('#style').value);
+updateThemeButton();
+mapView.setStyle(mapStyle);
 requestAnimationFrame(animationFrame);
