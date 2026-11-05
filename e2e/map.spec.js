@@ -79,9 +79,13 @@ test('loads mocked schedules and updates controls when language changes', async 
   await expect(page.getByTestId('language-select-es')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByTestId('language-select-ca')).toBeVisible();
   await expect(page.getByTestId('language-select-ca')).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByTestId('language-select-ca')).toHaveAttribute('aria-pressed', 'false');
+
+  await page.getByTestId('language-select-ca').click();
 
   await expect(page.locator('h1')).toHaveText('Autobusos de Terrassa segons l’horari');
   await expect(page.getByTestId('service-status')).toContainText('viatges del dia: 1');
+  await expect(page.getByTestId('language-select-ca')).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('stop popup shows FGC transfers only when the selected stop has one', async ({ page }) => {
