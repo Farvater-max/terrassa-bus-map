@@ -23,4 +23,16 @@ export const LANDMARKS = [
           'dark-gray': './src/icons/landmarks/egara_poi_dark.png',
         },
   },
+  {
+    id: '3',
+    name: 'Estadi Olímpic de Terrassa',
+    description: 'un edificio esport',
+    lon: 2.011156,
+    lat: 41.576132,
+    scale: 1.3,
+    icons: {
+          'light-gray': './src/icons/landmarks/stadium_icon_dark.png',
+          'dark-gray': './src/icons/landmarks/stadium_icon_light.png',
+        },
+  },
 ];
