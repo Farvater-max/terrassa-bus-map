@@ -92,3 +92,8 @@ export function escapeHTML(value) {
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   })[character]);
 }
+
+export const isSameDirection = (trip, reference) => (
+  trip.id === reference.id
+  || (trip.routeIndex === reference.routeIndex && trip.headsign === reference.headsign)
+);
