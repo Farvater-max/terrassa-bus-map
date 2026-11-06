@@ -2,7 +2,7 @@ import { createLocalization } from './src/client/localization.js';
 import { loadFeeds } from './src/client/feeds.js';
 import { createMapView } from './src/client/map-view.js';
 import { prepareSchedule, selectSchedule } from './src/client/schedules.js';
-import { escapeHTML } from './src/client/geometry.js';
+import { escapeHTML, formatTime } from './src/client/geometry.js';
 
 const query = selector => document.querySelector(selector);
 const localization = createLocalization(window.TRANSLATIONS);
@@ -135,8 +135,17 @@ function setCurrentTime() {
   needsRedraw = true;
 }
 
+function renderHud(visibleBuses) {
+  query('#clock').textContent = formatTime(simulationTime);
+  query('#slider').value = simulationTime % 86400;
+  query('#info').textContent = t('status.busCount', {
+    buses: visibleBuses,
+    trips: dayTrips.length,
+  }) + note;
+}
+
 function renderFrame() {
-  mapView.draw({
+  const { visibleBuses } = mapView.draw({
     day: dayTrips,
     hiddenRoutes,
     note,
@@ -150,6 +159,7 @@ function renderFrame() {
     stops: preparedSchedule.stops,
     time: simulationTime,
   });
+  renderHud(visibleBuses);
 }
 
 function animationFrame(now) {
