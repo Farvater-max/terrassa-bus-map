@@ -97,3 +97,11 @@ export const isSameDirection = (trip, reference) => (
   trip.id === reference.id
   || (trip.routeIndex === reference.routeIndex && trip.headsign === reference.headsign)
 );
+
+/** Индекс ближайшей по расписанию остановки рейса в момент time. */
+export function nextStopIndex(trip, time) {
+  const { times, stopIndexes } = trip.pattern;
+  const relativeTime = time - trip.startTime;
+  const index = times.findIndex(value => value > relativeTime);
+  return index < 0 ? stopIndexes.length - 1 : index;
+}

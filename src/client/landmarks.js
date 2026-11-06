@@ -35,4 +35,16 @@ export const LANDMARKS = [
           'dark-gray': './src/icons/landmarks/stadium_icon_light.png',
         },
   },
+  {
+    id: '4',
+    name: 'Chimney of Bòbila Almirall',
+    description: 'monumento histórico',
+    lon: 1.999587,
+    lat: 41.557715,
+    scale: 1.3,
+    icons: {
+          'light-gray': './src/icons/landmarks/tower_poi_dark.png',
+          'dark-gray': './src/icons/landmarks/tower_poi_light.png',
+        },
+  },
 ];
