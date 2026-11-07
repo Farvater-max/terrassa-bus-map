@@ -17,7 +17,7 @@ export const LANDMARKS = [
     description: 'monumento histórico',
     lon: 2.018426,
     lat: 41.566897,
-    scale: 1.3,
+    scale: 1.5,
     icons: {
           'light-gray': './src/icons/landmarks/egara_poi_light.png',
           'dark-gray': './src/icons/landmarks/egara_poi_dark.png',
@@ -29,7 +29,7 @@ export const LANDMARKS = [
     description: 'un edificio esport',
     lon: 2.010681,
     lat: 41.575888,
-    scale: 1.3,
+    scale: 1,
     icons: {
           'light-gray': './src/icons/landmarks/stadium_icon_dark.png',
           'dark-gray': './src/icons/landmarks/stadium_icon_light.png',
@@ -41,7 +41,7 @@ export const LANDMARKS = [
     description: 'monumento histórico',
     lon: 1.999587,
     lat: 41.557715,
-    scale: 1.3,
+    scale: 1.5,
     icons: {
           'light-gray': './src/icons/landmarks/tower_poi_dark.png',
           'dark-gray': './src/icons/landmarks/tower_poi_light.png',

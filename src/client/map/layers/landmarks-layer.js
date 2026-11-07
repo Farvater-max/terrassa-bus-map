@@ -11,10 +11,21 @@ export function createLandmarksLayer(images) {
       for (const landmark of LANDMARKS) {
         const image = images.get(landmark, style);
         if (!image) continue;
-        const size = baseSize * (landmark.scale ?? 1);
+        const height = baseSize * (landmark.scale ?? 1);
+        const aspectRatio = image.width / image.height;
+        const width = height * aspectRatio;
+
         const point = frame.projectLonLat(landmark.lon, landmark.lat);
-        if (!frame.isVisible(point, size)) continue;
-        ctx.drawImage(image, point.x - size / 2, point.y - size * 0.86, size, size);
+
+        if (!frame.isVisible(point, height)) continue;
+
+        ctx.drawImage(
+          image,
+          point.x - width / 2,
+          point.y - height * 0.86,
+          width,
+          height
+        );
       }
     },
   };
