@@ -17,15 +17,14 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: 'npm run dev',
+    command: 'npm run build:e2e && npm run preview -- --host 127.0.0.1 --port 4179 --strictPort',
     url: 'http://127.0.0.1:4179',
     reuseExistingServer: !process.env.CI,
-    timeout: 30_000,
+    timeout: 120_000,
     env: {
-      HOST: '127.0.0.1',
-      PORT: '4179',
-      SUPABASE_URL: 'https://supabase.test',
-      SUPABASE_ANON_KEY: 'playwright-test-key',
+      VITE_SUPABASE_URL: 'https://supabase.test',
+      VITE_SUPABASE_ANON_KEY: 'playwright-test-key',
+      VITE_ARCGIS_API_KEY: '',
     },
   },
 });

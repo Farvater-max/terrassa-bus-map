@@ -1,3 +1,7 @@
+import 'maplibre-gl/dist/maplibre-gl.css';
+import './styles.css';
+import es from './src/i18n/es.json';
+import ca from './src/i18n/ca.json';
 import { createLocalization } from './src/client/localization.js';
 import { loadFeeds } from './src/client/feeds.js';
 import { createMapView } from './src/client/map-view.js';
@@ -5,15 +9,15 @@ import { prepareSchedule, selectSchedule } from './src/client/schedules.js';
 import { escapeHTML, formatTime } from './src/client/geometry.js';
 
 const query = selector => document.querySelector(selector);
-const localization = createLocalization(window.TRANSLATIONS);
+const localization = createLocalization({ es, ca });
 const t = localization.translate;
 localization.apply();
 
 let feedData;
 try {
   feedData = await loadFeeds({
-    url: window.SUPABASE_URL,
-    anonKey: window.SUPABASE_ANON_KEY,
+    url: import.meta.env.VITE_SUPABASE_URL,
+    anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
     translate: t,
   });
 } catch (error) {
@@ -51,7 +55,7 @@ function updateThemeButton() {
 const mapView = createMapView({
   canvas: query('#cv'),
   translate: t,
-  apiKey: window.ARCGIS_API_KEY,
+  apiKey: import.meta.env.VITE_ARCGIS_API_KEY ?? '',
   onMapChange: () => { needsRedraw = true; },
   onSelect: selection => {
     if (selection?.stopIndex == null) selectedTrip = selection?.trip || null;

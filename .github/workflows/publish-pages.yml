@@ -21,16 +21,14 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Build page that reads schedules from Supabase
-        run: |
-          mkdir -p public
-          node scripts/publish-page.js --out public/index.html
+        run: npm run build
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL || 'https://example.supabase.co' }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY || 'pr-validation-only' }}
-          ARCGIS_API_KEY: ${{ secrets.ARCGIS_API_KEY || vars.ARCGIS_API_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL || 'https://example.supabase.co' }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY || 'pr-validation-only' }}
+          VITE_ARCGIS_API_KEY: ${{ secrets.ARCGIS_API_KEY || vars.ARCGIS_API_KEY }}
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: public
+          path: dist
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: build

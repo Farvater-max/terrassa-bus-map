@@ -1,3 +1,4 @@
+import maplibregl from 'maplibre-gl';
 import { LANDMARKS } from './landmarks.js';
 import { basemapStyle } from './map/basemap.js';
 import { createBusSheet } from './map/bus-sheet.js';
@@ -11,8 +12,6 @@ import { createBusesLayer } from './map/layers/buses-layer.js';
 import { createLandmarksLayer } from './map/layers/landmarks-layer.js';
 import { createRouteLayer } from './map/layers/route-layer.js';
 import { createPopup } from './map/popup.js';
-
-const ARCGIS_API_KEY = globalThis.ARCGIS_API_KEY ?? '';
 
 function syncCanvasSize(canvas, ctx) {
   const pixelRatio = window.devicePixelRatio || 1;
@@ -28,8 +27,7 @@ function syncCanvasSize(canvas, ctx) {
   ctx.lineCap = 'round';
 }
 
-/** Композиция: карта + слои + шторка + попап. Логики рисования здесь нет. */
-export function createMapView({ canvas, onSelect, onMapChange, translate, apiKey = ARCGIS_API_KEY }) {
+export function createMapView({ canvas, onSelect, onMapChange, translate, apiKey = '' }) {
   const ctx = canvas.getContext('2d');
   const mobileQuery = matchMedia('(max-width: 640px)');
   const query = selector => document.querySelector(selector);

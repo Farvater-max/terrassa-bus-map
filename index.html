@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="color-scheme" content="dark">
+    <title>Autobuses de Terrassa según el horario</title>
+  </head>
+  <body>
+    <header>
+      <h1 data-i18n="app.title"></h1>
+      <label>
+        <span data-i18n="control.date"></span>
+        <input id="date" type="date" data-testid="schedule-date">
+      </label>
+      <label>
+        <span data-i18n="control.speed"></span>
+        <select id="speed" data-testid="simulation-speed">
+          <option value="1">1×</option>
+          <option value="10">10×</option>
+          <option value="60">60×</option>
+          <option value="300">300×</option>
+        </select>
+      </label>
+      <label>
+        <span data-i18n="control.schedule"></span>
+        <select id="set" data-testid="schedule-select"></select>
+      </label>
+
+    </header>
+
+    <div id="bar">
+      <button id="play" class="primary" data-testid="play-toggle" data-i18n="control.pause"></button>
+      <button id="now" data-testid="jump-to-now" data-i18n="control.now"></button>
+      <span id="clock" aria-live="off">--:--:--</span>
+      <input id="slider" type="range" min="0" max="86399" step="60" value="0" data-testid="time-slider" data-i18n-aria="control.timeOfDay">
+    </div>
+    <div id="info" data-testid="service-status" aria-live="polite" data-i18n="status.loading"></div>
+    <div id="chips" data-testid="route-filters" data-i18n-aria="control.routes"></div>
+
+    <main id="wrap">
+      <div id="map" data-testid="map-surface" data-i18n-aria="map.aria"></div>
+      <canvas id="cv" aria-hidden="true"></canvas>
+      <div id="pop" data-testid="map-popup" hidden></div>
+      <section id="sheet" data-testid="bus-sheet" role="dialog" aria-live="polite" hidden>
+          <button id="sheet-close" type="button" data-i18n-aria="sheet.close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>
+          </button>
+        <div class="sheet-title">
+          <span id="sheet-badge" class="transfer-badge"></span>
+          <h2 id="sheet-title"></h2>
+        </div>
+        <div id="sheet-direction"></div>
+        <div class="sheet-stop">
+          <span class="sheet-dot"></span>
+          <div class="sheet-stop-text">
+            <small data-i18n="popup.nextStop"></small>
+            <span id="sheet-stop"></span>
+          </div>
+          <div class="sheet-time">
+            <b id="sheet-arrival"></b>
+            <small id="sheet-eta"></small>
+          </div>
+        </div>
+      </section>
+      <div id="zoom">
+        <div id="language" class="segmented" role="group" data-i18n-aria="control.language" data-testid="language-select">
+          <button type="button" data-lang="es" data-testid="language-select-es" lang="es">ES</button>
+          <button type="button" data-lang="ca" data-testid="language-select-ca" lang="ca">CA</button>
+        </div>
+        <button id="theme" type="button" data-testid="map-style"></button>
+        <button id="zi" type="button" data-i18n-aria="control.zoomIn">+</button>
+        <button id="zo" type="button" data-i18n-aria="control.zoomOut">−</button>
+      </div>
+      <div id="warn" data-testid="map-warning" role="status" hidden></div>
+      <div id="attr"></div>
+    </main>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

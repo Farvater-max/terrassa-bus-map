@@ -1,16 +1,18 @@
 import { escapeHTML, formatTime, nextStopIndex } from '../geometry.js';
 import { railConnections } from './rail-connections.js';
+import fgcIconUrl from '../../icons/fgc.png';
+import renfeIconUrl from '../../icons/renfe.png';
 
 const RAIL_BADGES = {
-  fgc: { icon: 'fgc', text: 'FGC', labelKey: 'popup.fgc' },
-  renfe: { icon: 'renfe', text: 'Renfe', labelKey: 'popup.renfe' },
+  fgc: { icon: fgcIconUrl, text: 'FGC', labelKey: 'popup.fgc' },
+  renfe: { icon: renfeIconUrl, text: 'Renfe', labelKey: 'popup.renfe' },
 };
 
 function railBadge(kind, translate) {
   const { icon, text, labelKey } = RAIL_BADGES[kind];
   const label = escapeHTML(translate(labelKey));
   return `<span class="${kind}-badge" role="img" aria-label="${label}" title="${label}">
-            <img src="./src/icons/${icon}.png" alt="">
+            <img src="${icon}" alt="">
             <span>${text}</span>
           </span>`;
 }
