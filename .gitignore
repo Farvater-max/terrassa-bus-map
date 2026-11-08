@@ -3,7 +3,7 @@ src/.DS_Store
 dist
 .env.local
 public/index.html
-/debug/
+/.dev/
 /.staging/
 /node_modules/
 /test-results/
