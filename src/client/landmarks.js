@@ -47,4 +47,16 @@ export const LANDMARKS = [
           'dark-gray': './src/icons/landmarks/tower_poi_light.png',
         },
   },
+  {
+    id: '5',
+    name: 'Torre del Palau',
+    description: 'monumento histórico',
+    lon: 2.010842,
+    lat: 41.562388,
+    scale: 1.5,
+    icons: {
+          'light-gray': './src/icons/landmarks/torre_de_palau_dark_icon.png',
+          'dark-gray': './src/icons/landmarks/torre_de_palau_light_icon.png',
+        },
+  },
 ];
