@@ -1,8 +1,9 @@
 .DS_Store
 src/.DS_Store
-.env.debug.local
+dist
+.env.local
+public/index.html
 /debug/
-/.dev/
 /.staging/
 /node_modules/
 /test-results/

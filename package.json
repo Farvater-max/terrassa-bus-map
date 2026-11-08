@@ -4,18 +4,22 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/publish-page.js --out public/index.html",
-    "dev": "node scripts/dev-server.js",
+    "build": "vite build",
+    "build:e2e": "vite build --mode e2e",
+    "dev": "vite",
+    "preview": "vite preview",
     "test": "node --test",
     "prepare:schedules": "node scripts/update-schedules.js --prepare-only",
     "persist:schedules": "node scripts/update-schedules.js --persist-only",
     "update:schedules": "node scripts/update-schedules.js"
   },
   "dependencies": {
-    "fflate": "^0.8.2"
+    "fflate": "^0.8.2",
+    "maplibre-gl": "^5.6.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vite": "^8.3.6"
   }
 }
