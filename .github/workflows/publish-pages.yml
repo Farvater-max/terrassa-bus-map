@@ -21,7 +21,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Build page that reads schedules from Supabase
-        run: npm rub build
+        run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL || 'https://example.supabase.co' }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY || 'pr-validation-only' }}
