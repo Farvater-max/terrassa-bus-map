@@ -46,13 +46,6 @@ header h1 {
   font-weight: 650;
 }
 
-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--muted);
-}
-
 input,
 select,
 button {
@@ -66,63 +59,6 @@ button {
 
 button {
   cursor: pointer;
-}
-
-button.primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: #04170d;
-}
-
-#bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 12px;
-  border-bottom: 1px solid var(--border);
-  background: var(--card);
-}
-
-#bar input[type="range"] {
-  flex: 1;
-  padding: 0;
-}
-
-#clock {
-  min-width: 78px;
-  font-size: 18px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 650;
-}
-
-#info {
-  padding: 0 12px 6px;
-  background: var(--card);
-  color: var(--muted);
-  font-size: 13px;
-}
-
-#chips {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  padding: 6px 12px;
-  border-bottom: 1px solid var(--border);
-  background: var(--card);
-}
-
-.chip {
-  flex: none;
-  padding: 2px 10px;
-  border: 2px solid;
-  border-radius: 99px;
-  font-weight: 650;
-  cursor: pointer;
-  user-select: none;
-}
-
-.chip.off {
-  opacity: 0.35;
 }
 
 #wrap {
@@ -452,4 +388,22 @@ button.primary {
   #sheet {
     display: none !important;
   }
+}
+
+#notice {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  right: 56px;
+  left: 10px;
+  width: fit-content;
+  margin-inline: auto;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  font-size: 13px;
+  text-align: center;
+  pointer-events: none;
 }

@@ -38,7 +38,7 @@ export function createMapView({ canvas, onSelect, onMapChange, translate, apiKey
   const route = createRouteLayer();
   const buses = createBusesLayer();
   const drawOrder = [landmarks, route, buses];
-  const hitOrder = [buses, route]; // порядок = приоритет клика
+  const hitOrder = [buses, route];
 
   const sheet = createBusSheet({ root: query('#sheet'), translate, onClose: () => onSelect(null) });
   const popup = createPopup({ element: query('#pop'), translate });

@@ -6,7 +6,6 @@ export class ScheduleMapPage {
     this.heading = page.locator('h1');
     this.routeFilters = page.getByTestId('route-filters');
     this.serviceStatus = page.getByTestId('service-status');
-    this.playToggle = page.getByTestId('play-toggle');
     this.mapStyle = page.getByTestId('map-style');
     this.timeSlider = page.getByTestId('time-slider');
     this.mapSurface = page.getByTestId('map-surface');
@@ -16,6 +15,8 @@ export class ScheduleMapPage {
     this.zoomInButton = page.locator('#zi');
     this.zoomOutButton = page.locator('#zo');
   }
+
+  get notice() { return this.page.getByTestId('no-buses-notice'); }
 
   async goto() {
     await this.page.goto('/');
@@ -27,13 +28,6 @@ export class ScheduleMapPage {
       [longitude, latitude]
     );
     await this.mapSurface.click({ position: point });
-  }
-
-  async setTimeSliderValue(value) {
-    await this.timeSlider.evaluate((slider, val) => {
-      slider.value = val;
-      slider.dispatchEvent(new Event('input', { bubbles: true }));
-    }, value);
   }
 
   async clickZoomIn() {
@@ -50,18 +44,6 @@ export class ScheduleMapPage {
 
   async expectHeadingToBe(text) {
     await expect(this.heading, `Expected main heading to be "${text}"`).toHaveText(text);
-  }
-
-  async expectRouteFilterVisible(routeNumber) {
-    await expect(this.routeFilters.getByText(routeNumber), `Expected route filter for route "${routeNumber}" to be visible`).toBeVisible();
-  }
-
-  async expectServiceStatusContains(text) {
-    await expect(this.serviceStatus, `Expected service status block to contain text "${text}"`).toContainText(text);
-  }
-
-  async expectPlayToggleText(text) {
-    await expect(this.playToggle, `Expected play toggle button text to be "${text}"`).toHaveText(text);
   }
 
   async expectMapStyleVisible() {

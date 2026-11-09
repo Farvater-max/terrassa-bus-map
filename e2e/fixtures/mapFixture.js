@@ -8,6 +8,7 @@ export const test = base.extend({
   },
 
   mapPage: async ({ page, feedConfig }, use) => {
+    await page.clock.setFixedTime(new Date('2026-11-09T10:05:00'));
     await page.route('https://supabase.test/rest/v1/feeds**', route => route.fulfill({
       contentType: 'application/json',
       body: JSON.stringify([{ data: feedConfig.build(), updated_at: '2026-11-02T12:00:00.000Z' }]),
