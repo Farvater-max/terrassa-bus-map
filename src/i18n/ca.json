@@ -26,5 +26,7 @@
   "panel.inService": "Autobusos en servei: {buses}",
   "panel.hint": "Fes clic en un autobús per veure’n el recorregut i les parades.",
   "panel.noTransfers": "Sense correspondències en aquesta parada.",
-  "panel.moreStops": "i {count} parades més"
+  "panel.moreStops": "i {count} parades més",
+  "notice.firstTomorrow": " Primer servei demà: {time}.",
+  "map.sources": "Dades:"
 }

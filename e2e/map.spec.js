@@ -159,6 +159,7 @@ test('shows a notice when no buses are running and the next departure', async ({
 
   // then
   await expect(mapPage.notice).not.toContainText('Próximo servicio');
+  await expect(mapPage.notice).toContainText('Primer servicio mañana: 10:00');
 
   // when
   await mapPage.languageCa.click();
@@ -179,4 +180,17 @@ test('clicking a bus centers the map on it', async ({ feedConfig, mapPage }) => 
   await mapPage.clickMapCoordinate(2.021, 41.561);
 
   await mapPage.expectMapCenteredOnBus();
+});
+
+test('shows data source links', async ({ feedConfig, mapPage }) => {
+  feedConfig
+    .withStops(STOPS.ESTACIO_RAMBLA, STOPS.PARC_CENTRAL)
+    .withRoutes(ROUTES.LINE_1)
+    .withHeads(STOPS.PARC_CENTRAL)
+    .withTrips([0, 36_000, 0, 0, 0]);
+
+  await mapPage.goto();
+
+  await expect(mapPage.page.getByTestId('source-tmesa')).toHaveAttribute('href', /tmesa/);
+  await expect(mapPage.page.getByTestId('source-ajuntament')).toHaveAttribute('href', /terrassa\.cat/);
 });

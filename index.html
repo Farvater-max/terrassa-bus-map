@@ -34,7 +34,13 @@
         <button id="zo" type="button" data-i18n-aria="control.zoomOut">−</button>
       </div>
       <div id="warn" data-testid="map-warning" role="status" hidden></div>
-      <div id="attr"></div>
+      <div id="attr">
+        <span id="attr-map"></span>
+        <span aria-hidden="true">·</span>
+        <span data-i18n="map.sources"></span>
+        <a href="https://tmesa.com" target="_blank" rel="noopener noreferrer" data-testid="source-tmesa">TMESA</a>,
+        <a href="https://www.terrassa.cat" target="_blank" rel="noopener noreferrer" data-testid="source-ajuntament">Ajuntament de Terrassa</a>
+      </div>
     </main>
 
     <script type="module" src="/app.js"></script>

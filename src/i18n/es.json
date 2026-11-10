@@ -26,5 +26,7 @@
   "panel.inService": "Autobuses en servicio: {buses}",
   "panel.hint": "Haz clic en un autobús para ver su recorrido y sus paradas.",
   "panel.noTransfers": "Sin correspondencias en esta parada.",
-  "panel.moreStops": "y {count} paradas más"
+  "panel.moreStops": "y {count} paradas más",
+  "notice.firstTomorrow": " Primer servicio mañana: {time}.",
+  "map.sources": "Datos:"
 }

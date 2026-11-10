@@ -33,6 +33,7 @@ const hiddenRoutes = new Set();
 let preparedSchedule = null;
 let dayTrips = [];
 let dayKey = '';
+let firstTomorrow = null;
 let selectedTrip = null;
 let selectedStop = null;
 let simulationTime = 0;
@@ -78,11 +79,16 @@ const infoPanel = createInfoPanel({
 });
 
 function todayYmd() {
-  const now = new Date();
+  return ymdOffset(0);
+}
+
+function ymdOffset(days) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
   return [
-    now.getFullYear(),
-    String(now.getMonth() + 1).padStart(2, '0'),
-    String(now.getDate()).padStart(2, '0'),
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
   ].join('');
 }
 
@@ -91,10 +97,20 @@ function currentSeconds() {
   return now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds() + now.getMilliseconds() / 1000;
 }
 
+function firstDepartureOn(ymd) {
+  const { schedule, services } = selectSchedule(feedData.schedules, ymd, 'auto', t);
+  let first = Infinity;
+  for (const [, startTime, , serviceIndex] of schedule.trips) {
+    if (startTime < 86400 && startTime < first && services.has(schedule.svc[serviceIndex])) first = startTime;
+  }
+  return Number.isFinite(first) ? first : null;
+}
+
 function buildDay() {
   selectedTrip = null;
   selectedStop = null;
   dayKey = todayYmd();
+  firstTomorrow = firstDepartureOn(ymdOffset(1));
   const selection = selectSchedule(feedData.schedules, dayKey, 'auto', t);
 
   if (preparedSchedule?.schedule !== selection.schedule) {
@@ -114,10 +130,11 @@ function nextDeparture() {
 
 function noticeText(visibleBuses) {
   if (visibleBuses > 0) return '';
-  if (!dayTrips.length) return t('notice.noService');
-  const next = nextDeparture();
-  return t('notice.noBuses')
-    + (next !== null ? t('notice.nextDeparture', { time: formatTime(next).slice(0, 5) }) : '');
+  const base = dayTrips.length ? t('notice.noBuses') : t('notice.noService');
+  const next = dayTrips.length ? nextDeparture() : null;
+  if (next !== null) return base + t('notice.nextDeparture', { time: formatTime(next).slice(0, 5) });
+  if (firstTomorrow !== null) return base + t('notice.firstTomorrow', { time: formatTime(firstTomorrow).slice(0, 5) });
+  return base;
 }
 
 function renderNotice(text) {

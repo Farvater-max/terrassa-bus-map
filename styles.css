@@ -120,8 +120,22 @@ button {
   z-index: 2;
   right: 6px;
   bottom: 4px;
+  max-width: calc(100% - 12px);
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--card) 80%, transparent);
   color: var(--muted);
   font-size: 11px;
+  text-align: right;
+}
+
+#attr a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+#attr a:hover {
+  color: var(--foreground);
 }
 
 #notice {

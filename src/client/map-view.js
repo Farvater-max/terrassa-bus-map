@@ -67,13 +67,13 @@ export function createMapView({ canvas, onSelect, onMapChange, translate, apiKey
     style = nextStyle;
     warningVisible = false;
     query('#warn').hidden = true;
-    query('#attr').textContent = translate('map.attribution');
+    query('#attr-map').textContent = translate('map.attribution');
     onMapChange();
     if (changed) map.setStyle(basemapStyle(style, apiKey));
   }
 
   function setLanguage() {
-    query('#attr').textContent = translate('map.attribution');
+    query('#attr-map').textContent = translate('map.attribution');
     if (warningVisible) showMapWarning();
   }
 
