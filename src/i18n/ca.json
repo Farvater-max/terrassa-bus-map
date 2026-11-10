@@ -11,7 +11,7 @@
   "map.aria": "Mapa de les rutes d’autobús",
   "map.attribution": "Cartografia © Esri",
   "map.loadError": "No s’ha pogut carregar el mapa d’Esri. Comprova la connexió a Internet.",
-  "sheet.bus": "Autobús {route}",
+  "sheet.bus": "Línia {route}",
   "sheet.close": "Tancar",
   "sheet.inMinutes": "en {minutes} min",
   "sheet.arriving": "arribant",
@@ -20,8 +20,11 @@
   "status.outOfRangeSelected": " La fecha está fuera del período de este horario; se usa el horario del día de la semana.",
   "status.outOfRangeAuto": " La fecha está fuera del período de los horarios; se usa el horario del día de la semana.",
   "popup.nextStop": "Propera parada",
-  "popup.scheduledAt": "Hora prevista",
   "popup.transfers": "Correspondències amb:",
   "popup.fgc": "Tren FGC",
-  "popup.renfe": "Tren Renfe"
+  "popup.renfe": "Tren Renfe",
+  "panel.inService": "Autobusos en servei: {buses}",
+  "panel.hint": "Fes clic en un autobús per veure’n el recorregut i les parades.",
+  "panel.noTransfers": "Sense correspondències en aquesta parada.",
+  "panel.moreStops": "i {count} parades més"
 }

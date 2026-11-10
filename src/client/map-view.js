@@ -1,7 +1,6 @@
 import maplibregl from 'maplibre-gl';
 import { LANDMARKS } from './landmarks.js';
 import { basemapStyle } from './map/basemap.js';
-import { createBusSheet } from './map/bus-sheet.js';
 import {
   DEFAULT_STYLE, MAP_BOUNDS, MAP_CENTER, MAP_START_ZOOM, MAX_ZOOM, MIN_ZOOM,
 } from './map/config.js';
@@ -11,7 +10,7 @@ import { loadLandmarkImages } from './map/images.js';
 import { createBusesLayer } from './map/layers/buses-layer.js';
 import { createLandmarksLayer } from './map/layers/landmarks-layer.js';
 import { createRouteLayer } from './map/layers/route-layer.js';
-import { createPopup } from './map/popup.js';
+import { busPosition, pointToLongitudeLatitude } from './geometry.js';
 
 function syncCanvasSize(canvas, ctx) {
   const pixelRatio = window.devicePixelRatio || 1;
@@ -29,8 +28,9 @@ function syncCanvasSize(canvas, ctx) {
 
 export function createMapView({ canvas, onSelect, onMapChange, translate, apiKey = '' }) {
   const ctx = canvas.getContext('2d');
-  const mobileQuery = matchMedia('(max-width: 640px)');
   const query = selector => document.querySelector(selector);
+  const mobileQuery = matchMedia('(max-width: 640px)');
+  let lastState = null;
   let style = DEFAULT_STYLE;
   let warningVisible = false;
 
@@ -39,9 +39,6 @@ export function createMapView({ canvas, onSelect, onMapChange, translate, apiKey
   const buses = createBusesLayer();
   const drawOrder = [landmarks, route, buses];
   const hitOrder = [buses, route];
-
-  const sheet = createBusSheet({ root: query('#sheet'), translate, onClose: () => onSelect(null) });
-  const popup = createPopup({ element: query('#pop'), translate });
 
   const map = new maplibregl.Map({
     container: 'map',
@@ -80,21 +77,14 @@ export function createMapView({ canvas, onSelect, onMapChange, translate, apiKey
     if (warningVisible) showMapWarning();
   }
 
-  /** Рисует кадр и возвращает данные для HUD (сам HUD пишет app.js). */
   function draw(state) {
+    lastState = state;
     syncCanvasSize(canvas, ctx);
     const frame = createFrame({ map, canvas, state, style });
     for (const layer of drawOrder) layer.draw(ctx, frame);
-
-    const selectedBus = state.selection?.trip;
-    const useSheet = mobileQuery.matches && Boolean(selectedBus);
-    sheet.render(useSheet ? selectedBus : null, state);
-    popup.render(useSheet ? null : state.selection, frame, buses);
-
     return { visibleBuses: buses.visibleCount };
   }
 
-  // Объединяем частые события move/resize в один вызов на кадр
   let scheduled = 0;
   const scheduleChange = () => {
     if (scheduled) return;
@@ -104,6 +94,24 @@ export function createMapView({ canvas, onSelect, onMapChange, translate, apiKey
     });
   };
 
+  function panelOffset() {
+    if (!mobileQuery.matches) return [0, 0];
+    return [0, -query('#panel').offsetHeight / 2];
+  }
+
+  function focusOnBus(trip) {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (!lastState) return;
+      const position = busPosition(trip, lastState.time, lastState.stops, lastState.shapes);
+      if (!position) return;
+      map.easeTo({
+        center: pointToLongitudeLatitude(position[0], position[1]),
+        offset: panelOffset(),
+        duration: 700,
+      });
+    }));
+  }
+
   map.on('load', onMapChange);
   map.on('error', event => {
     if (event.error && !map.isStyleLoaded()) showMapWarning();
@@ -111,8 +119,10 @@ export function createMapView({ canvas, onSelect, onMapChange, translate, apiKey
   map.on('move', scheduleChange);
   map.on('resize', scheduleChange);
   map.on('click', ({ point }) => {
-    const coarse = matchMedia('(pointer: coarse)').matches; // тачскрин: нужен больший радиус нажатия
-    onSelect(pickSelection(hitOrder, point, coarse));
+    const coarse = matchMedia('(pointer: coarse)').matches;
+    const selection = pickSelection(hitOrder, point, coarse);
+    onSelect(selection);
+    if (selection?.trip) focusOnBus(selection.trip);
   });
 
   return {

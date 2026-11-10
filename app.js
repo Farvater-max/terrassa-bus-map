@@ -5,6 +5,7 @@ import ca from './src/i18n/ca.json';
 import { createLocalization } from './src/client/localization.js';
 import { loadFeeds } from './src/client/feeds.js';
 import { createMapView } from './src/client/map-view.js';
+import { createInfoPanel } from './src/client/map/info-panel.js';
 import { prepareSchedule, selectSchedule } from './src/client/schedules.js';
 import { formatTime } from './src/client/geometry.js';
 
@@ -22,6 +23,7 @@ try {
   });
 } catch (error) {
   const notice = query('#notice');
+  notice.classList.add('error');
   notice.textContent = t('status.loadError', { error: error.message });
   notice.hidden = false;
   throw error;
@@ -44,9 +46,11 @@ const THEME_ICONS = {
 
 function updateThemeButton() {
   const dark = mapStyle === 'dark-gray';
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', dark ? 'dark' : 'light');
   const button = query('#theme');
   const label = t(dark ? 'control.switchToLight' : 'control.switchToDark');
-  button.innerHTML = dark ? THEME_ICONS.sun : THEME_ICONS.moon; // показываем, на что переключимся
+  button.innerHTML = dark ? THEME_ICONS.sun : THEME_ICONS.moon;
   button.setAttribute('aria-label', label);
   button.title = label;
 }
@@ -59,6 +63,16 @@ const mapView = createMapView({
   onSelect: selection => {
     if (selection?.stopIndex == null) selectedTrip = selection?.trip || null;
     selectedStop = selection?.stopIndex ?? null;
+    needsRedraw = true;
+  },
+});
+
+const infoPanel = createInfoPanel({
+  root: query('#panel'),
+  translate: t,
+  onClose: () => {
+    selectedTrip = null;
+    selectedStop = null;
     needsRedraw = true;
   },
 });
@@ -98,24 +112,22 @@ function nextDeparture() {
   return Number.isFinite(next) ? next : null;
 }
 
-function renderNotice(visibleBuses) {
+function noticeText(visibleBuses) {
+  if (visibleBuses > 0) return '';
+  if (!dayTrips.length) return t('notice.noService');
+  const next = nextDeparture();
+  return t('notice.noBuses')
+    + (next !== null ? t('notice.nextDeparture', { time: formatTime(next).slice(0, 5) }) : '');
+}
+
+function renderNotice(text) {
   const notice = query('#notice');
-  let text = '';
-  if (visibleBuses === 0) {
-    if (!dayTrips.length) {
-      text = t('notice.noService');
-    } else {
-      text = t('notice.noBuses');
-      const next = nextDeparture();
-      if (next !== null) text += t('notice.nextDeparture', { time: formatTime(next).slice(0, 5) });
-    }
-  }
   if (notice.textContent !== text) notice.textContent = text;
   notice.hidden = !text;
 }
 
 function renderFrame() {
-  const { visibleBuses } = mapView.draw({
+  const state = {
     day: dayTrips,
     hiddenRoutes,
     selectedStop,
@@ -127,12 +139,15 @@ function renderFrame() {
     routes: preparedSchedule.routes,
     stops: preparedSchedule.stops,
     time: simulationTime,
-  });
-  renderNotice(visibleBuses);
+  };
+  const { visibleBuses } = mapView.draw(state);
+  const message = noticeText(visibleBuses);
+  renderNotice(message);
+  infoPanel.render({ selection: state.selection, state, visibleBuses, message });
 }
 
 function animationFrame() {
-  if (todayYmd() !== dayKey) buildDay(); // наступила полночь
+  if (todayYmd() !== dayKey) buildDay();
   simulationTime = currentSeconds();
   renderFrame();
   requestAnimationFrame(animationFrame);

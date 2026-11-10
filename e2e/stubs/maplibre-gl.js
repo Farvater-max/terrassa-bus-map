@@ -27,6 +27,7 @@ class Map {
   isStyleLoaded() { return true; }
   setStyle() {}
   zoomTo(zoom) { this.zoom = zoom; this.handlers.get('move')?.(); }
+  easeTo(options) { this.lastEase = options; }
 }
 
 export default { Map };

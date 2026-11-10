@@ -11,7 +11,7 @@
   "map.aria": "Mapa de las rutas de autobús",
   "map.attribution": "Cartografía © Esri",
   "map.loadError": "No se pudo cargar el mapa de Esri. Comprueba tu conexión a Internet.",
-  "sheet.bus": "Autobús {route}",
+  "sheet.bus": "Línea {route}",
   "sheet.close": "Cerrar",
   "sheet.inMinutes": "en {minutes} min",
   "sheet.arriving": "llegando",
@@ -20,8 +20,11 @@
   "status.outOfRangeAuto": " La fecha está fuera del período de los horarios; se usa el horario del día de la semana.",
   "status.outOfRangeSelected": " La fecha está fuera del período de este horario; se usa el horario del día de la semana.",
   "popup.nextStop": "Próxima parada",
-  "popup.scheduledAt": "Hora prevista",
   "popup.transfers": "Correspondencias con:",
   "popup.fgc": "Tren FGC",
-  "popup.renfe": "Tren Renfe"
+  "popup.renfe": "Tren Renfe",
+  "panel.inService": "Autobuses en servicio: {buses}",
+  "panel.hint": "Haz clic en un autobús para ver su recorrido y sus paradas.",
+  "panel.noTransfers": "Sin correspondencias en esta parada.",
+  "panel.moreStops": "y {count} paradas más"
 }

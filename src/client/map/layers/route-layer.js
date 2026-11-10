@@ -30,7 +30,7 @@ export function createRouteLayer() {
     strokePath(ctx, projected, lineWidth, route.lineColor, 0.95);
 
     if (arrowCache.trip !== trip) {
-      arrowCache = { trip, arrows: buildArrows(path, frame.project, zoom) };
+      arrowCache = { trip, arrows: buildArrows(path, trip) };
     }
     if (zoom >= 12.5) drawArrows(ctx, frame, arrowCache.arrows);
   }

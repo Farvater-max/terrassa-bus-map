@@ -13,29 +13,17 @@
     <main id="wrap">
       <div id="map" data-testid="map-surface" data-i18n-aria="map.aria"></div>
       <canvas id="cv" aria-hidden="true"></canvas>
-      <div id="pop" data-testid="map-popup" hidden></div>
       <div id="notice" data-testid="no-buses-notice" role="status" hidden></div>
-      <section id="sheet" data-testid="bus-sheet" role="dialog" aria-live="polite" hidden>
-          <button id="sheet-close" type="button" data-i18n-aria="sheet.close">
+      <aside id="panel" data-testid="info-panel" data-state="idle">
+        <div class="panel-head">
+          <span id="panel-badge" class="transfer-badge" hidden></span>
+          <h2 id="panel-title"></h2>
+          <button id="panel-close" type="button" data-i18n-aria="sheet.close" hidden>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>
           </button>
-        <div class="sheet-title">
-          <span id="sheet-badge" class="transfer-badge"></span>
-          <h2 id="sheet-title"></h2>
         </div>
-        <div id="sheet-direction"></div>
-        <div class="sheet-stop">
-          <span class="sheet-dot"></span>
-          <div class="sheet-stop-text">
-            <small data-i18n="popup.nextStop"></small>
-            <span id="sheet-stop"></span>
-          </div>
-          <div class="sheet-time">
-            <b id="sheet-arrival"></b>
-            <small id="sheet-eta"></small>
-          </div>
-        </div>
-      </section>
+        <div id="panel-body"></div>
+      </aside>
       <div id="zoom">
         <div id="language" class="segmented" role="group" data-i18n-aria="control.language" data-testid="language-select">
           <button type="button" data-lang="es" data-testid="language-select-es" lang="es">ES</button>
